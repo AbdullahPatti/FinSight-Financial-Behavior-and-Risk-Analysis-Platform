@@ -1,1 +1,1 @@
-# ncial-Behavior-and-Risk-Analysis-Platform
+# FinSight-Financial-Behavior-and-Risk-Analysis-Platform
