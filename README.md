@@ -2,14 +2,17 @@
 
 ## Financial Behavior and Risk Analysis Platform
 
-A modular machine learning pipeline that analyzes structured corporate financial data to produce behavioral insights, risk classifications, and spending pattern visualizations.
-
 > **National University of Computer and Emerging Sciences**
-> Department of Computer Science, Lahore, Pakistan
->
-> Abdullah Haroon — 23L-0734
-> Zayan Amjad — 23L-0721
-> Ikhlas Ahmad — 23L-0638
+> Department of Computer Science, Lahore
+> Software Engineering and Artificial Intelligence
+
+| Name | Roll No. |
+|---|---|---|
+| Abdullah Haroon | 23L-0734 |
+| Zayan Amjad | 23L-0721 |
+| Ikhlas Ahmad | 23L-0638 |
+
+**GitHub Repository:** [FinSight on GitHub](https://github.com/AbdullahPatti/FinSight-Financial-Behavior-and-Risk-Analysis-Platform.git)
 
 ---
 
@@ -17,7 +20,7 @@ A modular machine learning pipeline that analyzes structured corporate financial
 
 FinSight takes structured financial data exported from a company's accounting or ERP system, processes it through a data analytics and ML pipeline, and delivers behavioral insights, risk categorization, and spending pattern visualizations.
 
-The core output is a **risk profile per time period** classifying the company's financial health into one of four bands: `Low`, `Medium`, `High`, or `Extreme`. The system also surfaces dominant expense categories, asset and liability trends, and transactions that deviate from established patterns. Where datasets include natural language description fields, an NLP component extracts spending context and improves categorization.
+The core output is a **risk profile per time period** classifying financial health into one of four bands: `Low`, `Medium`, `High`, or `Extreme`. The system also surfaces dominant expense categories, asset and liability trends, and transactions that deviate from established patterns. Where datasets include natural language description fields, an NLP component extracts spending context and improves categorization.
 
 ---
 
@@ -31,28 +34,13 @@ FinSight addresses three specific gaps:
 2. Granular spending pattern analysis requires analyst time most organizations don't invest
 3. Anomalies in financial behavior go undetected until they become material problems
 
----
+**Domain:** Financial analytics and intelligent decision-support for corporate entities operating on structured transaction and balance sheet data.
 
-## Scope
-
-### In Scope
-
-- Data ingestion and preprocessing from CSV or XLSX
-- Cleaning, normalization, and feature engineering
-- Financial health ratio computation
-- Spending pattern detection across categories, departments, and time periods
-- ML-based risk scoring into Low, Medium, High, and Extreme bands
-- Transaction-level anomaly detection using learned behavioral baselines
-- Behavioral sequence modeling over time-ordered financial data
-- NLP processing of transaction description fields
-- Interactive visualization dashboard
-
-### Out of Scope
-
-- Real-time banking integrations
-- Automated payment processing
-- Regulatory advisory or taxation computation
-- Deep learning architectures (CNNs, RNNs, LSTMs, Transformers, LLMs)
+**Target Audience:**
+- Finance departments seeking automated behavioral analysis
+- Management teams requiring periodic risk assessments without manual effort
+- Internal audit functions looking for transaction-level anomaly detection
+- Organizational leadership requiring a data-driven view of financial health trends
 
 ---
 
@@ -63,7 +51,7 @@ Four years of corporate financial records for **NovaTech Industries Ltd**, a Pak
 - **Rows:** 50,000
 - **Columns:** 19
 - **Period:** FY2021 – FY2024
-- **Anomalies:** 1,500 injected labeled anomalous transactions for evaluation
+- **Anomalies:** 1,500 injected labeled anomalous transactions for model evaluation
 
 | Column | Type | Description |
 |---|---|---|
@@ -89,22 +77,14 @@ Four years of corporate financial records for **NovaTech Industries Ltd**, a Pak
 
 ---
 
-## System Architecture
+## Data Preprocessing
 
-The pipeline has two parallel tracks that converge at risk scoring: a **numerical analysis track** and an **NLP track**.
-
-| Module | Responsibility |
-|---|---|
-| Data Ingestion | Accepts CSV or XLSX, validates schema, loads into typed DataFrame |
-| Data Preprocessing | Missing value handling, outlier treatment, type normalization, date parsing |
-| Feature Engineering | Derives financial ratios, spending shares, trend indicators, time aggregations |
-| NLP Module | Processes `transaction_description` for categorization and anomaly signals |
-| Spending Pattern Analyzer | Identifies top categories, department distributions, temporal trends |
-| Risk Scoring Engine | Computes weighted risk score per period and assigns band |
-| Anomaly Detector | Flags transactions deviating from learned behavioral baselines |
-| Behavioral Sequence Modeler | Models hidden financial states via HMM across quarterly sequences |
-| Insight Engine | Aggregates module outputs into structured summaries |
-| Visualization Dashboard | Interactive charts, risk timelines, and pattern breakdowns via React.js |
+1. Handle missing values through imputation or removal depending on column type and missingness rate
+2. Correct data types and parse date fields into fiscal year and quarter components
+3. Treat outliers in numeric columns using IQR-based detection and capping
+4. Encode categorical variables for ML model input
+5. Normalize numeric columns where required by algorithm
+6. Apply NLP preprocessing to `transaction_description`: lowercasing, punctuation removal, tokenization, stopword removal
 
 ---
 
@@ -123,6 +103,61 @@ The pipeline has two parallel tracks that converge at risk scoring: a **numerica
 
 ---
 
+## System Architecture
+
+The pipeline runs two parallel tracks — **numerical analysis** and **NLP** — that converge at the risk scoring stage.
+
+| Module | Responsibility |
+|---|---|
+| Data Ingestion | Accepts CSV or XLSX, validates schema, loads into typed DataFrame |
+| Data Preprocessing | Missing value handling, outlier treatment, type normalization, date parsing |
+| Feature Engineering | Derives financial ratios, spending shares, trend indicators, time aggregations |
+| NLP Module | Processes `transaction_description` for categorization and anomaly signals |
+| Spending Pattern Analyzer | Identifies top categories, department distributions, temporal trends |
+| Risk Scoring Engine | Computes weighted risk score per period and assigns band |
+| Anomaly Detector | Flags transactions deviating from learned behavioral baselines |
+| Behavioral Sequence Modeler | Models hidden financial states via HMM across quarterly sequences |
+| Insight Engine | Aggregates module outputs into structured summaries |
+| Visualization Dashboard | Interactive charts, risk timelines, and pattern breakdowns via React.js |
+
+---
+
+## Model Selection
+
+| Task | Technique | Justification |
+|---|---|---|
+| Spending pattern analysis | Aggregation and statistical profiling | Identifies dominant categories, trends, and department distributions |
+| Risk band classification | Decision Tree / Random Forest | Maps derived financial indicators to Low / Medium / High / Extreme bands |
+| Anomaly detection | Isolation Forest / statistical threshold modeling | Detects transactions deviating from learned behavioral baselines |
+| Behavioral state modeling | Hidden Markov Model + Viterbi decoding | Infers latent financial states from observable quarterly sequences |
+| Transaction categorization (NLP) | TF-IDF + text classifier | Predicts expense category from description text |
+| Semantic text representation (NLP) | Word2Vec (CBOW and Skip-gram) | Learns semantic similarity between spending-related terms |
+| POS-based intent extraction (NLP) | POS Tagging | Differentiates transaction types sharing similar vocabulary |
+
+---
+
+## Model Training and Evaluation
+
+### Training Methodology
+
+- Risk classifier trained on labeled quarterly records where bands are derived from financial ratio thresholds
+- Anomaly detector trained on clean transactions, evaluated against 1,500 labeled anomalous entries
+- HMM trained on time-ordered quarterly sequences via Baum-Welch algorithm, decoded via Viterbi
+- NLP text classifier trained on the labeled `expense_category` column using description text as input
+
+### Evaluation Metrics
+
+| Component | Metric |
+|---|---|
+| Risk band classifier | Accuracy, Precision, Recall, F1-score per class |
+| Anomaly detector | Precision, Recall, F1-score against labeled anomalies |
+| HMM behavioral model | Log-likelihood of observed sequences, qualitative state coherence |
+| NLP text classifier | Per-class F1-score across 12 expense categories |
+
+Cross-validation is applied to classification models. The HMM is evaluated by comparing decoded state sequences against periods of known financial stress.
+
+---
+
 ## Risk Scoring
 
 | Risk Band | Financial Indicators | Behavioral Signals |
@@ -132,13 +167,13 @@ The pipeline has two parallel tracks that converge at risk scoring: a **numerica
 | **High** | Current ratio < 1.0, high debt-to-asset, declining revenue | Elevated anomaly rate, unusual category spikes |
 | **Extreme** | Liquidity crisis, debt exceeding assets, severe revenue contraction | High anomaly concentration, erratic spending, critical state |
 
-The scoring model weights financial ratio indicators highest, followed by behavioral sequence state, then transaction-level anomaly signals. Risk bands are computed per quarter producing a four-year timeline.
+The model weights financial ratio indicators highest, followed by behavioral sequence state, then transaction-level anomaly signals. Bands are computed per quarter producing a four-year timeline.
 
 ---
 
 ## Anomaly Detection
 
-Anomalies are detected using three complementary signals:
+Three complementary signals:
 
 1. **Numerical** — Transaction amount is statistically unusual relative to category baseline
 2. **Behavioral** — Combination of category, amount, and timing is inconsistent with the organization's learned pattern (via HMM context)
@@ -148,8 +183,6 @@ Anomalies are detected using three complementary signals:
 
 ## Behavioral Sequence Modeling (HMM)
 
-Financial behavior moves through observable phases. HMM infers latent states from observable financial data.
-
 | HMM Component | Definition |
 |---|---|
 | Hidden States | Financially Stable, Under Pressure, Distressed, Critical, Recovery |
@@ -158,23 +191,36 @@ Financial behavior moves through observable phases. HMM infers latent states fro
 | Emission Probabilities | Likelihood of observing a financial signal combination in a given state |
 | Initial Distribution | Starting state probability from the first available quarter |
 
-**Viterbi decoding** produces a behavioral timeline across the four-year dataset showing when stress periods began, how long they lasted, and whether recovery followed.
+Viterbi decoding produces a behavioral timeline across the four-year dataset showing when stress periods began, how long they lasted, and whether recovery followed.
 
 ---
 
 ## NLP Component
 
-Processes the `transaction_description` column to enrich categorization and anomaly detection. Operates as a self-contained supporting layer — the core financial pipeline does not depend on it.
+Operates as a self-contained supporting layer. The core financial pipeline does not depend on it.
 
 | Technique | Application |
 |---|---|
 | Text Preprocessing | Lowercasing, punctuation removal, tokenization, stopword removal |
-| Bag of Words & TF-IDF | Converts descriptions to numeric vectors; TF-IDF weights informative tokens higher |
+| Bag of Words & TF-IDF | Converts descriptions to numeric vectors; weights informative tokens higher |
 | N-grams (Unigrams & Bigrams) | Bigrams like "car tank" or "client dinner" carry category signals unigrams miss |
 | Word2Vec (CBOW & Skip-gram) | Dense embeddings cluster semantically similar terms like "petrol", "fuel", "diesel" |
-| Text Classification | Predicts expense category from description text as a validation layer |
+| Text Classification | Predicts expense category from description as a validation layer |
 | POS Tagging | Distinguishes transaction types sharing vocabulary (purchase vs. maintenance) |
 | HMM on Text Sequences | Detects unusual language patterns in description token sequences |
+
+---
+
+## Deployment
+
+| Layer | Technology | Detail |
+|---|---|---|
+| Backend | FastAPI | Serves preprocessing, model inference, and insight generation as REST endpoints |
+| Frontend | React.js | Interactive dashboard with charts, risk timelines, and anomaly views |
+| Database | PostgreSQL / SQLite | Stores processed records and model outputs for dashboard queries |
+| Input | CSV / XLSX upload | System processes end-to-end and returns a complete behavioral analysis report |
+
+Designed for batch processing up to 100,000 rows without infrastructure changes.
 
 ---
 
@@ -195,15 +241,27 @@ Processes the `transaction_description` column to enrich categorization and anom
 
 ---
 
-## Key Deliverables
+## Dashboard Outputs
 
-- Cleaned and preprocessed financial dataset with derived feature columns
-- Spending pattern report across categories, departments, and vendors for FY2021–FY2024
-- Quarterly risk band timeline (Low / Medium / High / Extreme)
-- Anomaly detection report with numeric and behavioral justification per flagged transaction
-- HMM-decoded behavioral state timeline across four fiscal years
-- NLP-based categorization validation and description anomaly flags
-- Interactive visualization dashboard with spending breakdowns, risk trends, and anomaly highlights
+| Output | Description |
+|---|---|
+| Spending Pattern Report | Category, department, and vendor distribution charts across fiscal years |
+| Risk Band Timeline | Quarterly Low / Medium / High / Extreme classification over FY2021–FY2024 |
+| Financial Ratio Dashboard | Current ratio, debt-to-asset, loan coverage, and expense-to-revenue per quarter |
+| Anomaly Report | Flagged transactions with numeric and behavioral justification |
+| Behavioral State Timeline | HMM-decoded financial state sequence across four fiscal years |
+| NLP Category Validation | Description-based category predictions compared against labeled values |
+
+---
+
+## Scope Boundaries
+
+Not included in this project:
+
+- Real-time banking API integrations or live data feeds
+- Automated payment processing
+- Taxation computation or regulatory financial advisory
+- Deep learning architectures (CNNs, RNNs, LSTMs, Transformers, LLMs)
 
 ---
 
