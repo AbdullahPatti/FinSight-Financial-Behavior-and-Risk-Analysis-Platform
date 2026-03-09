@@ -2,7 +2,7 @@
 
 ## Financial Behavior and Risk Analysis Platform
 
-> **National University of Computer and Emerging Sciences**
+- **National University of Computer and Emerging Sciences**
 > Department of Computer Science, Lahore
 
 | Name | Roll No. |
