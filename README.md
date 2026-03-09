@@ -7,7 +7,7 @@
 > Software Engineering and Artificial Intelligence
 
 | Name | Roll No. |
-|---|---|---|
+|---|---|
 | Abdullah Haroon | 23L-0734 |
 | Zayan Amjad | 23L-0721 |
 | Ikhlas Ahmad | 23L-0638 |
