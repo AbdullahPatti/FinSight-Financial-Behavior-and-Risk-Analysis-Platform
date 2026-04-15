@@ -1284,7 +1284,7 @@
       .user-mention[href$="/AbdullahPatti"]:after {
         content: '';
         display: inline-block;
-        width: 2px;
+        width: 2px; 
       }
     </style>
 
