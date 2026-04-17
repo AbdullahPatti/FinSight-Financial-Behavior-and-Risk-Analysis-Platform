@@ -1,0 +1,120 @@
+/* =========================================================
+   LoginPage — FinSight Design System
+   ========================================================= */
+
+/* Page background */
+.login-page {
+  min-height: 100vh;
+  background: linear-gradient(
+    135deg,
+    #f0fdfa 0%,
+    #ecfdf5 40%,
+    #f0fdf4 70%,
+    #fafaf9 100%
+  );
+  display: flex;
+}
+
+/* Left brand panel */
+.login-brand-panel {
+  background: linear-gradient(
+    145deg,
+    #0d9488 0%,
+    #0f766e 30%,
+    #059669 65%,
+    #047857 100%
+  );
+  position: relative;
+  overflow: hidden;
+}
+
+.login-brand-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.08) 1px, transparent 0);
+  background-size: 36px 36px;
+}
+
+@keyframes panel-float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  33%       { transform: translateY(-12px) rotate(1deg); }
+  66%       { transform: translateY(6px) rotate(-0.5deg); }
+}
+
+.login-brand-orb {
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  animation: panel-float 7s ease-in-out infinite;
+}
+
+.login-brand-orb-2 {
+  animation-delay: -3.5s;
+  animation-duration: 9s;
+}
+
+/* Auth form card */
+.login-card {
+  box-shadow:
+    0 4px 6px rgba(0, 0, 0, 0.04),
+    0 20px 50px rgba(13, 148, 136, 0.10),
+    0 8px 20px rgba(0, 0, 0, 0.04);
+  animation: card-appear 0.55s cubic-bezier(0.34, 1.15, 0.64, 1) forwards;
+}
+
+@keyframes card-appear {
+  from {
+    opacity: 0;
+    transform: translateY(28px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Input field glow */
+.auth-input-wrap:focus-within {
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.12);
+  border-color: #0d9488 !important;
+}
+
+/* Primary auth button */
+.auth-btn-primary {
+  background: linear-gradient(135deg, #0d9488, #10b981, #059669);
+  background-size: 150% 100%;
+  background-position: 0% center;
+  transition:
+    background-position 0.4s ease,
+    box-shadow 0.3s ease,
+    transform 0.2s ease;
+}
+
+.auth-btn-primary:hover {
+  background-position: 100% center;
+  box-shadow: 0 8px 28px rgba(13, 148, 136, 0.4);
+  transform: translateY(-2px);
+}
+
+.auth-btn-primary:active {
+  transform: translateY(0);
+}
+
+/* Stats cards in brand panel */
+.brand-stat-card {
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 1rem;
+  transition: transform 0.3s ease, background 0.3s ease;
+}
+
+.brand-stat-card:hover {
+  background: rgba(255, 255, 255, 0.18);
+  transform: translateY(-4px);
+}
+
+/* Logo glow */
+.auth-logo-glow {
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.15), 0 8px 24px rgba(0, 0, 0, 0.2);
+}
