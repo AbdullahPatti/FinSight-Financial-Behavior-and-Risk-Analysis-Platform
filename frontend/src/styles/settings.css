@@ -1,0 +1,213 @@
+/* =========================================================
+   SettingsPage — FinSight Design System
+   ========================================================= */
+
+/* Settings header */
+.settings-header {
+  background: linear-gradient(
+    135deg,
+    #f0fdfa 0%,
+    #ecfdf5 50%,
+    #f0fdf4 100%
+  );
+  border: 1px solid rgba(13, 148, 136, 0.2);
+  border-radius: 1.25rem;
+  padding: 2rem;
+}
+
+/* Tabs */
+.settings-tabs-list {
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 0.875rem;
+  padding: 0.375rem;
+  display: flex;
+  gap: 0.25rem;
+  width: fit-content;
+  flex-wrap: wrap;
+}
+
+.settings-tab {
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.625rem;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  background: transparent;
+  white-space: nowrap;
+}
+
+.settings-tab:hover {
+  background: rgba(13, 148, 136, 0.06);
+  color: #0d9488;
+}
+
+.settings-tab[data-state="active"] {
+  background: linear-gradient(135deg, #0d9488, #10b981);
+  color: white;
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
+}
+
+/* Settings card section */
+.settings-card {
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 1.25rem;
+  padding: 2rem;
+  transition: border-color 0.3s ease;
+}
+
+.settings-card:hover {
+  border-color: rgba(13, 148, 136, 0.25);
+}
+
+/* Section icon */
+.settings-section-icon {
+  width: 3rem;
+  height: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.875rem;
+  background: linear-gradient(135deg, #f0fdfa, #ecfdf5);
+  color: #0d9488;
+  flex-shrink: 0;
+}
+
+/* Toggle preference row */
+.settings-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.125rem 1.25rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.settings-toggle-row:hover {
+  background: #f0fdfa;
+  border-color: rgba(13, 148, 136, 0.25);
+}
+
+/* Data export/import item */
+.settings-data-item {
+  padding: 1.5rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 1rem;
+  transition: all 0.25s ease;
+}
+
+.settings-data-item:hover {
+  border-color: rgba(13, 148, 136, 0.35);
+  background: rgba(13, 148, 136, 0.02);
+}
+
+/* Action buttons */
+.settings-action-btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 0.625rem;
+  color: #475569;
+  transition: all 0.2s ease;
+  background: transparent;
+  cursor: pointer;
+}
+
+.settings-action-btn-outline:hover {
+  border-color: #0d9488;
+  color: #0d9488;
+  background: rgba(13, 148, 136, 0.05);
+}
+
+.settings-action-btn-teal {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.625rem;
+  color: white;
+  background: linear-gradient(135deg, #0d9488, #10b981);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: none;
+}
+
+.settings-action-btn-teal:hover {
+  box-shadow: 0 8px 24px rgba(13, 148, 136, 0.3);
+  transform: translateY(-1px);
+}
+
+/* Danger zone */
+.settings-danger-zone {
+  background: white;
+  border: 2px solid #fca5a5;
+  border-radius: 1.25rem;
+  padding: 2rem;
+}
+
+.settings-danger-zone-inner {
+  background: #fef2f2;
+  border-radius: 0.875rem;
+  padding: 1.5rem;
+}
+
+/* Session row */
+.session-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 1rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  transition: background 0.2s ease;
+}
+
+.session-row:hover {
+  background: #f0fdfa;
+}
+
+/* Login history row */
+.login-history-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 1rem;
+  background: #f8fafc;
+  border-radius: 0.75rem;
+  border: 1px solid #e2e8f0;
+  transition: background 0.2s ease;
+}
+
+.login-history-row:hover {
+  background: #f0fdfa;
+}
+
+/* 2FA enabled indicator */
+@keyframes shield-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.4); }
+  50%       { box-shadow: 0 0 0 8px rgba(13, 148, 136, 0); }
+}
+
+.two-fa-active {
+  animation: shield-pulse 2.5s ease-in-out infinite;
+}
+
+/* Select trigger */
+.settings-select-trigger {
+  border: 1.5px solid #e2e8f0;
+  border-radius: 0.625rem;
+  transition: border-color 0.2s ease;
+}
+
+.settings-select-trigger:focus {
+  border-color: #0d9488;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
+}

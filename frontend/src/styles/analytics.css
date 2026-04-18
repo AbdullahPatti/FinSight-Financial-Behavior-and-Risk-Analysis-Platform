@@ -1,0 +1,166 @@
+/* =========================================================
+   AnalyticsPage — FinSight Design System
+   ========================================================= */
+
+/* Page header */
+.analytics-header {
+  background: linear-gradient(
+    135deg,
+    #f0fdfa 0%,
+    #ecfdf5 50%,
+    #f0fdf4 100%
+  );
+  border: 1px solid rgba(13, 148, 136, 0.2);
+  border-radius: 1.25rem;
+  padding: 2rem;
+}
+
+/* Tabs container */
+.analytics-tabs-list {
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 0.875rem;
+  padding: 0.375rem;
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+.analytics-tab-trigger {
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.625rem;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  background: transparent;
+}
+
+.analytics-tab-trigger:hover {
+  background: rgba(13, 148, 136, 0.06);
+  color: #0d9488;
+}
+
+.analytics-tab-trigger[data-state="active"] {
+  background: linear-gradient(135deg, #0d9488, #10b981);
+  color: white;
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
+}
+
+/* Cluster chart */
+.cluster-card {
+  transition: box-shadow 0.3s ease;
+}
+
+.cluster-card:hover {
+  box-shadow: 0 12px 40px rgba(13, 148, 136, 0.10);
+}
+
+/* Cluster summary item */
+.cluster-item {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.875rem;
+  padding: 1rem 1.25rem;
+  transition: all 0.2s ease;
+}
+
+.cluster-item:hover {
+  background: #f0fdfa;
+  border-color: rgba(13, 148, 136, 0.3);
+  transform: translateX(4px);
+}
+
+/* LTV value */
+.cluster-ltv {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 700;
+  font-size: 1.125rem;
+}
+
+/* Progress bar */
+.risk-bar-track {
+  height: 10px;
+  background: #f1f5f9;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.risk-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.8s cubic-bezier(0.34, 1.2, 0.64, 1);
+}
+
+/* Model performance bar */
+.perf-bar-track {
+  height: 8px;
+  background: #f1f5f9;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.perf-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #0d9488, #10b981);
+  transition: width 0.8s cubic-bezier(0.34, 1.2, 0.64, 1);
+}
+
+/* Anomaly detection pulse */
+@keyframes anomaly-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+    transform: scale(1.05);
+  }
+}
+
+.anomaly-badge-high {
+  animation: anomaly-pulse 2s ease-in-out infinite;
+}
+
+/* Anomaly table row */
+.anomaly-row {
+  border-bottom: 1px solid #f1f5f9;
+  transition: background-color 0.15s ease;
+}
+
+.anomaly-row:last-child {
+  border-bottom: none;
+}
+
+.anomaly-row:hover {
+  background-color: rgba(239, 68, 68, 0.03);
+}
+
+/* Severity badges */
+.severity-high   { background: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; }
+.severity-medium { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+.severity-low    { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+
+.severity-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* Radar chart label */
+.radar-label {
+  font-family: 'Crimson Pro', Georgia, serif;
+  font-size: 0.875rem;
+}
+
+/* Prediction confidence indicator */
+.confidence-bar {
+  height: 4px;
+  background: linear-gradient(90deg, #0d9488, #10b981);
+  border-radius: 99px;
+  transition: width 0.6s ease;
+}

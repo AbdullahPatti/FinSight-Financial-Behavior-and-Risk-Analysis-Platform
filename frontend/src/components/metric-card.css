@@ -1,0 +1,61 @@
+/* =========================================================
+   MetricCard Component — FinSight Design System
+   ========================================================= */
+
+.metric-card {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Top accent bar that reveals on hover */
+.metric-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #0d9488, #10b981, #059669);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.35s cubic-bezier(0.34, 1.2, 0.64, 1);
+  z-index: 1;
+}
+
+.metric-card:hover::before {
+  transform: scaleX(1);
+}
+
+/* Value count-up entrance animation */
+@keyframes metric-count-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.metric-value {
+  animation: metric-count-up 0.5s ease-out 0.08s both;
+}
+
+/* Icon container bounce on card hover */
+.metric-icon-wrap {
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.metric-card:hover .metric-icon-wrap {
+  transform: scale(1.12) rotate(6deg);
+}
+
+/* Change badge subtle slide */
+.metric-change-badge {
+  transition: transform 0.2s ease;
+}
+
+.metric-card:hover .metric-change-badge {
+  transform: translateX(3px);
+}
