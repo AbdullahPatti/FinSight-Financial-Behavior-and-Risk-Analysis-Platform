@@ -55,7 +55,7 @@ export default function SettingsPage() {
   ];
 
   return (
-    <div className="space-y-8 max-w-5xl">
+    <div className="space-y-8 max-w-5xl page-typography font-body">
 
       {/* Header */}
       <motion.div

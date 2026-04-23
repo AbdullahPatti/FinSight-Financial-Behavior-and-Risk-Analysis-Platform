@@ -21,6 +21,20 @@
   h6 {
     font-family: "Playfair Display", Georgia, "Times New Roman", serif;
   }
+
+  .page-typography {
+    font-family: "Crimson Pro", Georgia, "Times New Roman", serif;
+  }
+
+  .page-typography h1,
+  .page-typography h2,
+  .page-typography h3,
+  .page-typography h4,
+  .page-typography h5,
+  .page-typography h6 {
+    font-family: "Playfair Display", Georgia, "Times New Roman", serif;
+    font-weight: 600;
+  }
 }
 
 body {

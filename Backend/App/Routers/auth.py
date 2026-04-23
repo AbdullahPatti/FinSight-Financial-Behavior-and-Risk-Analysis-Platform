@@ -27,18 +27,23 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.email == user.email).first()
     if not db_user or db_user.hashed_password != user.password:
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    return {"message": "Login successful", "user": db_user.full_name, "plan": db_user.plan}
+    return {
+        "message": "Login successful",
+        "user": db_user.full_name,
+        "plan": db_user.plan,
+        "email": db_user.email,
+    }
 
 @router.get("/profile", response_model=UserResponse)
-def get_profile(db: Session = Depends(get_db)):
-    user = db.query(User).first()
+def get_profile(email: str, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == email).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
 @router.put("/profile")
-def update_profile(update: ProfileUpdate, db: Session = Depends(get_db)):
-    user = db.query(User).first()
+def update_profile(update: ProfileUpdate, email: str, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == email).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     if update.full_name:
@@ -49,8 +54,8 @@ def update_profile(update: ProfileUpdate, db: Session = Depends(get_db)):
     return {"message": "Profile updated"}
 
 @router.put("/security/password")
-def change_password(new_password: str, db: Session = Depends(get_db)):
-    user = db.query(User).first()
+def change_password(new_password: str, email: str, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == email).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     user.hashed_password = new_password

@@ -1,0 +1,20 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+.env
+.venv
+venv/
+.git/
+.gitignore
+
+# Temp files generated at runtime — will be recreated
+temp_hmm.csv
+temp_quarterly.csv
+temp_upload.csv
+nlp_predictions.csv
+
+# SQLite DB — managed via Docker volume, not baked into image
+finsight.db

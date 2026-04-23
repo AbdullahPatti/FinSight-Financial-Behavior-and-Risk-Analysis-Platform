@@ -28,6 +28,8 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 import "../styles/expenses.css";
 
+const BASE_URL = "http://localhost:8000";
+
 const COLORS = {
   primary:   "#0d9488",
   secondary: "#10b981",
@@ -140,6 +142,61 @@ export default function ExpensesPage() {
   const [files, setFiles]                 = useState(uploadedFiles);
   const fileInputRef                      = useRef(null);
 
+  const uploadCsvFile = async (file) => {
+    let rowCount = 0;
+    try {
+      const text = await file.text();
+      rowCount = Math.max(
+        text.split(/\r?\n/).filter((line) => line.trim()).length - 1,
+        0
+      );
+    } catch {
+      rowCount = 0;
+    }
+
+    const fileId = Date.now() + Math.random();
+    const newFile = {
+      id: fileId,
+      name: file.name,
+      status: "processing",
+      date: new Date().toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      }),
+      rows: rowCount,
+    };
+
+    setFiles((prev) => [newFile, ...prev]);
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch(`${BASE_URL}/upload/`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json().catch(() => ({}));
+      const uploadSucceeded = res.ok && data?.status === "success";
+
+      setFiles((prev) =>
+        prev.map((item) =>
+          item.id === fileId
+            ? { ...item, status: uploadSucceeded ? "processed" : "failed" }
+            : item
+        )
+      );
+    } catch {
+      setFiles((prev) =>
+        prev.map((item) =>
+          item.id === fileId ? { ...item, status: "failed" } : item
+        )
+      );
+    }
+  };
+
   const handleDrag = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -151,17 +208,12 @@ export default function ExpensesPage() {
     e.stopPropagation();
     setDragOver(false);
     const dropped = Array.from(e.dataTransfer.files).filter((f) =>
-      f.name.endsWith(".csv")
+      f.name.toLowerCase().endsWith(".csv")
     );
     if (dropped.length) {
-      const newFile = {
-        id: Date.now(),
-        name: dropped[0].name,
-        status: "processing",
-        date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-        rows: 0,
-      };
-      setFiles((prev) => [newFile, ...prev]);
+      dropped.forEach((file) => {
+        uploadCsvFile(file);
+      });
     }
   };
 
@@ -173,7 +225,7 @@ export default function ExpensesPage() {
         );
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 page-typography font-body">
 
       {/* Header */}
       <div className="expenses-header">
@@ -226,17 +278,13 @@ export default function ExpensesPage() {
             accept=".csv"
             className="hidden"
             onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) {
-                const newFile = {
-                  id: Date.now(),
-                  name: f.name,
-                  status: "processing",
-                  date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-                  rows: 0,
-                };
-                setFiles((prev) => [newFile, ...prev]);
-              }
+              const selectedFiles = Array.from(e.target.files || []).filter((f) =>
+                f.name.toLowerCase().endsWith(".csv")
+              );
+              selectedFiles.forEach((file) => {
+                uploadCsvFile(file);
+              });
+              e.target.value = "";
             }}
           />
           <div

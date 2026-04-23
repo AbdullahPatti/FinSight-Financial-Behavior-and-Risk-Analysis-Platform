@@ -68,7 +68,7 @@ const FEATURES = [
 
 export default function LandingPage() {
   return (
-    <div className="landing-hero-bg min-h-screen font-body">
+    <div className="landing-hero-bg min-h-screen page-typography font-body">
 
       {/* ── Navigation ───────────────────────────────────────── */}
       <nav className="border-b border-slate-200/60 bg-white/80 backdrop-blur-xl fixed top-0 left-0 right-0 z-50 shadow-sm">

@@ -163,7 +163,7 @@ export default function AnalyticsPage() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 page-typography font-body">
 
       {/* Header */}
       <div className="analytics-header">

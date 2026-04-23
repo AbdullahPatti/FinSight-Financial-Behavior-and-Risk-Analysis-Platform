@@ -1,0 +1,14 @@
+fastapi 
+uvicorn 
+sqlalchemy 
+psycopg2-binary 
+pandas 
+numpy 
+seaborn
+scikit-learn 
+matplotlib 
+nltk 
+gensim 
+hmmlearn 
+python-multipart
+pydantic[email]

@@ -40,23 +40,45 @@ export default function SignupPage() {
   const [showPwd, setShowPwd]                 = useState(false);
   const [showConfirm, setShowConfirm]         = useState(false);
   const [loading, setLoading]                 = useState(false);
+  const [error, setError]                     = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+
     if (password !== confirmPassword) {
-      alert("Passwords don't match!");
+      setError("Passwords don't match!");
       return;
     }
     if (!acceptedTerms) {
-      alert("Please accept the terms and conditions.");
+      setError("Please accept the terms and conditions.");
       return;
     }
-    setLoading(true);
-    setTimeout(() => navigate("/dashboard"), 800);
-  };
 
+    setLoading(true);
+    try {
+      const res = await fetch("http://localhost:8000/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ full_name: fullName, email, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.detail || "Registration failed. Please try again.");
+        return;
+      }
+
+      navigate("/login");
+    } catch {
+      setError("Cannot reach the server. Make sure the backend is running.");
+    } finally {
+      setLoading(false);
+    }
+  };
   return (
-    <div className="signup-page flex min-h-screen">
+    <div className="signup-page flex min-h-screen page-typography font-body">
 
       {/* ── Left Form Side ──────────────────────────────────── */}
       <div className="flex-1 flex items-center justify-center p-6 lg:p-12 order-2 lg:order-1">

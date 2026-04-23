@@ -24,7 +24,6 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import "../styles/dashboard.css";
-
 const colors = {
   primary:   "#0d9488",
   secondary: "#10b981",
@@ -139,7 +138,7 @@ function PriorityBadge({ priority }) {
 
 export default function DashboardPage() {
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 page-typography font-body">
 
       {/* Header */}
       <div className="dashboard-header rounded-2xl p-8">

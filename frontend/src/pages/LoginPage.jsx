@@ -34,11 +34,36 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPwd, setShowPwd]   = useState(false);
   const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => navigate("/dashboard"), 800);
+    setError("");
+
+    try {
+      const res = await fetch("http://localhost:8000/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.detail || "Login failed. Please try again.");
+        return;
+      }
+
+      localStorage.setItem("user_name", data.user);
+      localStorage.setItem("user_plan", data.plan);
+      localStorage.setItem("user_email", data.email || email);
+      navigate("/dashboard");
+    } catch {
+      setError("Cannot reach the server. Make sure the backend is running.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -46,12 +71,10 @@ export default function LoginPage() {
 
       {/* ── Brand Panel (left, desktop) ──────────────────────── */}
       <div className="login-brand-panel hidden lg:flex flex-col justify-between w-[46%] xl:w-[42%] p-12 xl:p-16 relative">
-        {/* Floating orbs */}
         <div className="login-brand-orb absolute top-16 right-10 w-40 h-40 opacity-60" />
         <div className="login-brand-orb login-brand-orb-2 absolute bottom-24 left-8 w-60 h-60 opacity-40" />
         <div className="login-brand-orb absolute top-1/2 right-1/4 w-24 h-24 opacity-30 animation-delay-2000" />
 
-        {/* Logo */}
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-16">
             <div className="auth-logo-glow bg-white/20 backdrop-blur-sm p-3.5 rounded-2xl">
@@ -75,7 +98,6 @@ export default function LoginPage() {
             </p>
           </div>
 
-          {/* Feature list */}
           <div className="space-y-3">
             {BRAND_FEATURES.map(({ icon: Icon, text }) => (
               <div key={text} className="brand-stat-card flex items-center gap-3 px-4 py-3">
@@ -88,7 +110,6 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Stats row */}
         <div className="relative z-10 grid grid-cols-3 gap-4">
           {BRAND_STATS.map(({ label, value }) => (
             <div key={label} className="brand-stat-card p-4 text-center">
@@ -125,6 +146,13 @@ export default function LoginPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Error banner */}
+              {error && (
+                <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+                  {error}
+                </div>
+              )}
+
               {/* Email */}
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-slate-700">

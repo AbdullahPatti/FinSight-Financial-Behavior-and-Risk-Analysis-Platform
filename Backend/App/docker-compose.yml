@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  backend:
+    build: .
+    container_name: finsight_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - finsight_db:/app/data
+      - .:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+
+volumes:
+  finsight_db:
