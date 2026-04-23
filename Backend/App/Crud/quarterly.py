@@ -4,9 +4,9 @@ import pandas as pd
 import os
 
 def bulk_insert_quarterly(db: Session):
-    if not os.path.exists("temp_risk.csv"):
+    if not os.path.exists("risk_bands.csv"):
         return False
-    df = pd.read_csv("temp_risk.csv")
+    df = pd.read_csv("risk_bands.csv")
     
     new_count = 0
     skipped_count = 0

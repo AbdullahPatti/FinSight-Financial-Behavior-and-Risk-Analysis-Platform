@@ -1,15 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   AlertTriangle,
   Brain,
   Activity,
   Target,
   Cpu,
+  TrendingUp,
 } from "lucide-react";
 import MetricCard from "../components/MetricCard";
 import {
-  ScatterChart,
-  Scatter,
   LineChart,
   Line,
   BarChart,
@@ -29,7 +28,6 @@ import {
   ReferenceLine,
 } from "recharts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/tabs";
-import { motion } from "motion/react";
 import "../styles/analytics.css";
 
 const COLORS = {
@@ -43,89 +41,13 @@ const COLORS = {
   warning:   "#f59e0b",
 };
 
-const clusteringData = [
-  { x: 25, y: 45, z: 200, cluster: "High Spenders"    },
-  { x: 30, y: 50, z: 250, cluster: "High Spenders"    },
-  { x: 28, y: 48, z: 220, cluster: "High Spenders"    },
-  { x: 32, y: 52, z: 260, cluster: "High Spenders"    },
-  { x: 55, y: 30, z: 150, cluster: "Medium Spenders"  },
-  { x: 60, y: 32, z: 160, cluster: "Medium Spenders"  },
-  { x: 58, y: 28, z: 145, cluster: "Medium Spenders"  },
-  { x: 62, y: 35, z: 170, cluster: "Medium Spenders"  },
-  { x: 80, y: 15, z: 80,  cluster: "Low Spenders"     },
-  { x: 85, y: 12, z: 75,  cluster: "Low Spenders"     },
-  { x: 82, y: 18, z: 90,  cluster: "Low Spenders"     },
-  { x: 88, y: 10, z: 65,  cluster: "Low Spenders"     },
-  { x: 15, y: 85, z: 300, cluster: "Premium Users"    },
-  { x: 18, y: 88, z: 320, cluster: "Premium Users"    },
-  { x: 12, y: 82, z: 290, cluster: "Premium Users"    },
-  { x: 20, y: 92, z: 340, cluster: "Premium Users"    },
-];
-
-const clusterColors = {
-  "High Spenders":   COLORS.info,
-  "Medium Spenders": COLORS.secondary,
-  "Low Spenders":    COLORS.warning,
-  "Premium Users":   COLORS.purple,
+const RISK_BAND_COLOR = {
+  Low:      COLORS.secondary,
+  Medium:   COLORS.warning,
+  High:     COLORS.danger,
+  Critical: "#7f1d1d",
+  Unknown:  "#94a3b8",
 };
-
-const clusterSummary = [
-  { name: "Premium Users",   count: 180,  color: COLORS.purple,    ltv: "$12,500", pct: 5   },
-  { name: "High Spenders",   count: 450,  color: COLORS.info,      ltv: "$8,200",  pct: 12  },
-  { name: "Medium Spenders", count: 1240, color: COLORS.secondary, ltv: "$4,500",  pct: 34  },
-  { name: "Low Spenders",    count: 2100, color: COLORS.warning,   ltv: "$1,800",  pct: 49  },
-];
-
-const predictiveSpending = [
-  { month: "Mar", actual: 4500, predicted: 4600 },
-  { month: "Apr", actual: 4800, predicted: 4900 },
-  { month: "May", actual: 5200, predicted: 5100 },
-  { month: "Jun", predicted: 5400 },
-  { month: "Jul", predicted: 5800 },
-  { month: "Aug", predicted: 6100 },
-  { month: "Sep", predicted: 6500 },
-];
-
-const anomalyData = [
-  { date: "Feb 15", amount: 450,  threshold: 500, anomaly: false },
-  { date: "Feb 16", amount: 480,  threshold: 500, anomaly: false },
-  { date: "Feb 17", amount: 520,  threshold: 500, anomaly: true  },
-  { date: "Feb 18", amount: 1200, threshold: 500, anomaly: true  },
-  { date: "Feb 19", amount: 460,  threshold: 500, anomaly: false },
-  { date: "Feb 20", amount: 490,  threshold: 500, anomaly: false },
-  { date: "Feb 21", amount: 470,  threshold: 500, anomaly: false },
-  { date: "Feb 22", amount: 850,  threshold: 500, anomaly: true  },
-  { date: "Feb 23", amount: 445,  threshold: 500, anomaly: false },
-  { date: "Feb 24", amount: 430,  threshold: 500, anomaly: false },
-];
-
-const behaviorPatterns = [
-  { behavior: "Impulsive",     value: 65 },
-  { behavior: "Planned",       value: 85 },
-  { behavior: "Seasonal",      value: 45 },
-  { behavior: "Recurring",     value: 90 },
-  { behavior: "Discretionary", value: 55 },
-  { behavior: "Essential",     value: 95 },
-];
-
-const riskSegments = [
-  { segment: "Low Risk",    count: 1250, percentage: 62, color: COLORS.secondary },
-  { segment: "Medium Risk", count: 580,  percentage: 29, color: COLORS.warning   },
-  { segment: "High Risk",   count: 180,  percentage: 9,  color: COLORS.danger    },
-];
-
-const modelMetrics = [
-  { metric: "Accuracy",  value: 92.4, target: 90 },
-  { metric: "Precision", value: 88.7, target: 85 },
-  { metric: "Recall",    value: 90.1, target: 88 },
-  { metric: "F1 Score",  value: 89.4, target: 87 },
-];
-
-const detectedAnomalies = [
-  { id: "ANO-001", type: "Unusual spending spike",   date: "Feb 18, 2026", amount: "$1,200", severity: "high",   description: "250% above average daily spending" },
-  { id: "ANO-002", type: "New merchant category",    date: "Feb 22, 2026", amount: "$850",   severity: "medium", description: "First transaction in luxury goods"  },
-  { id: "ANO-003", type: "Multiple rapid transactions", date: "Feb 20, 2026", amount: "$450", severity: "low",  description: "15 transactions in 2 hours"         },
-];
 
 function ChartTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
@@ -134,7 +56,7 @@ function ChartTooltip({ active, payload, label }) {
       <p className="font-semibold text-slate-900 mb-1 text-sm">{label}</p>
       {payload.map((e, i) => (
         <p key={i} className="text-sm mt-0.5" style={{ color: e.color || COLORS.primary }}>
-          {e.name}: <span className="font-semibold">${e.value?.toLocaleString()}</span>
+          {e.name}: <span className="font-semibold">{e.value?.toLocaleString()}</span>
         </p>
       ))}
     </div>
@@ -154,13 +76,124 @@ function renderLegend({ payload }) {
   );
 }
 
+function Spinner() {
+  return (
+    <div className="flex items-center justify-center h-64">
+      <div className="size-10 border-4 border-teal-300 border-t-teal-600 rounded-full animate-spin" />
+    </div>
+  );
+}
+
+// Classify anomaly count per category into severity buckets
+function classifySeverity(count, maxCount) {
+  const ratio = count / maxCount;
+  if (ratio > 0.5) return "high";
+  if (ratio > 0.2) return "medium";
+  return "low";
+}
+
 export default function AnalyticsPage() {
-  const [selectedTab, setSelectedTab] = useState("clustering");
+  const [data, setData]       = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState(null);
+  const [selectedTab, setSelectedTab] = useState("risk");
+
+  useEffect(() => {
+    const API_URL = "http://localhost:8000/dashboard/";
+
+    fetch(API_URL)
+      .then(async (r) => {
+        const text = await r.text();
+        if (!r.ok) throw new Error(`HTTP ${r.status}: ${text.slice(0, 200)}`);
+        try {
+          return JSON.parse(text);
+        } catch {
+          throw new Error(
+            `Server returned non-JSON (status ${r.status}).\n` +
+            `First 300 chars: ${text.slice(0, 300)}`
+          );
+        }
+      })
+      .then((d) => { setData(d); setLoading(false); })
+      .catch((e) => { setError(e.message); setLoading(false); });
+  }, []);
+
+  if (loading) return <Spinner />;
+  if (error)   return <pre className="text-red-500 p-8 whitespace-pre-wrap text-sm">{error}</pre>;
+
+  const {
+    overview,
+    risk_assessment,
+    risk_timeline,
+    spending_by_category,
+    anomaly_by_category,
+    recent_transactions,
+  } = data;
+
+  // ── Derived data ──────────────────────────────────────────────
+
+  // Risk timeline line chart
+  const riskLineData = risk_timeline.map((q) => ({
+    label:          `FY${q.fiscal_year} Q${q.quarter}`,
+    expRatio:       parseFloat((q.expense_to_revenue * 100).toFixed(1)),
+    anomalyRate:    parseFloat((q.anomaly_rate * 100).toFixed(2)),
+    currentRatio:   parseFloat(q.current_ratio.toFixed(2)),
+    debtToAsset:    parseFloat((q.debt_to_asset * 100).toFixed(1)),
+    riskBand:       q.risk_band,
+  }));
+
+  // Radar: financial health profile from latest quarter
+  const latestQ = risk_timeline[risk_timeline.length - 1] || {};
+  const radarData = [
+    { metric: "Liquidity",        value: Math.min(latestQ.current_ratio * 50, 100) },
+    { metric: "Debt Control",     value: Math.max(100 - latestQ.debt_to_asset * 100, 0) },
+    { metric: "Exp Efficiency",   value: Math.max(100 - latestQ.expense_to_revenue * 100, 0) },
+    { metric: "Anomaly Safety",   value: Math.max(100 - latestQ.anomaly_rate * 100, 0) },
+    { metric: "Confidence",       value: parseFloat(((latestQ.confidence || 0) * 100).toFixed(0)) },
+  ];
+
+  // Anomaly by category bar
+  const maxAnomalyCount = Math.max(...anomaly_by_category.map((a) => a.count), 1);
+  const anomalyBarData = anomaly_by_category.slice(0, 10).map((a) => ({
+    category: a.category.length > 16 ? a.category.slice(0, 15) + "…" : a.category,
+    count:    a.count,
+    severity: classifySeverity(a.count, maxAnomalyCount),
+  }));
+
+  // Anomaly timeline from recent_transactions (last 10, grouped by date)
+  const dateMap = {};
+  recent_transactions.forEach((t) => {
+    const d = t.date || "Unknown";
+    if (!dateMap[d]) dateMap[d] = { date: d, total: 0, anomalies: 0, amount: 0 };
+    dateMap[d].total++;
+    dateMap[d].amount += t.amount;
+    if (t.is_anomaly) dateMap[d].anomalies++;
+  });
+  const txnTimeline = Object.values(dateMap).sort((a, b) => a.date.localeCompare(b.date));
+
+  // Spending categories for behavior radar (top 6)
+  const topCategories = spending_by_category.slice(0, 6);
+  const maxSpend = Math.max(...topCategories.map((c) => c.amount), 1);
+  const behaviorRadar = topCategories.map((c) => ({
+    category: c.category.length > 14 ? c.category.slice(0, 13) + "…" : c.category,
+    spend:    Math.round((c.amount / maxSpend) * 100),
+    count:    c.count,
+  }));
+
+  // Severity counts
+  const highCount   = anomaly_by_category.filter((a) => classifySeverity(a.count, maxAnomalyCount) === "high").length;
+  const mediumCount = anomaly_by_category.filter((a) => classifySeverity(a.count, maxAnomalyCount) === "medium").length;
+  const lowCount    = anomaly_by_category.filter((a) => classifySeverity(a.count, maxAnomalyCount) === "low").length;
 
   const getSeverityClass = (severity) => {
     const map = { high: "severity-high", medium: "severity-medium", low: "severity-low" };
     return `severity-badge ${map[severity]}`;
   };
+
+  // Average threshold for anomaly chart
+  const avgAmount = recent_transactions.length
+    ? recent_transactions.reduce((s, t) => s + t.amount, 0) / recent_transactions.length
+    : 0;
 
   return (
     <div className="space-y-8 page-typography font-body">
@@ -183,233 +216,132 @@ export default function AnalyticsPage() {
 
       {/* Metric Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <MetricCard title="Prediction Accuracy" value="92.4%"  change="+3.2%"       changeType="positive" icon={Target}        description="last 30 days"      />
-        <MetricCard title="Active Clusters"      value="4"      change="stable"       changeType="neutral"  icon={Brain}         description="behavioral groups"  />
-        <MetricCard title="Anomalies Detected"   value="12"     change="+4 this week" changeType="negative" icon={AlertTriangle}  description="requires review"   />
-        <MetricCard title="User Engagement"      value="87.6%"  change="+5.1%"        changeType="positive" icon={Activity}       description="vs last month"     />
+        <MetricCard
+          title="HMM State"
+          value={risk_assessment.hmm_state || "—"}
+          change={`Risk: ${risk_assessment.risk_band}`}
+          changeType={
+            risk_assessment.risk_band === "Low" ? "positive" :
+            risk_assessment.risk_band === "High" || risk_assessment.risk_band === "Critical" ? "negative" : "neutral"
+          }
+          icon={Brain}
+          description="Latest HMM behavior state"
+        />
+        <MetricCard
+          title="Anomaly Rate"
+          value={`${overview.anomaly_rate}%`}
+          change={`${overview.anomaly_count} flagged`}
+          changeType={overview.anomaly_rate > 5 ? "negative" : "positive"}
+          icon={AlertTriangle}
+          description="of all transactions"
+        />
+        <MetricCard
+          title="Prediction Confidence"
+          value={`${(risk_assessment.confidence * 100).toFixed(0)}%`}
+          change={`→ ${risk_assessment.predicted_band}`}
+          changeType="positive"
+          icon={Target}
+          description="model confidence score"
+        />
+        <MetricCard
+          title="Quarters Tracked"
+          value={risk_timeline.length}
+          change="risk timeline"
+          changeType="neutral"
+          icon={Activity}
+          description="historical quarters"
+        />
       </div>
 
       {/* Tabs */}
-      <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
-        <TabsList className="analytics-tabs-list h-auto p-1.5 bg-white border-2 border-slate-200 rounded-xl">
-          <TabsTrigger
-            value="clustering"
-            className="analytics-tab-trigger data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-600 data-[state=active]:to-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg px-5 py-2.5 rounded-lg transition-all"
-          >
-            Behavioral Clustering
-          </TabsTrigger>
-          <TabsTrigger
-            value="predictive"
-            className="analytics-tab-trigger data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-600 data-[state=active]:to-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg px-5 py-2.5 rounded-lg transition-all"
-          >
-            Predictive Analysis
-          </TabsTrigger>
-          <TabsTrigger
-            value="anomaly"
-            className="analytics-tab-trigger data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-600 data-[state=active]:to-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg px-5 py-2.5 rounded-lg transition-all"
-          >
-            Anomaly Detection
-          </TabsTrigger>
+      <Tabs value={selectedTab} onValueChange={setSelectedTab}>
+        <TabsList>
+          <TabsTrigger value="risk">Risk &amp; Ratios</TabsTrigger>
+          <TabsTrigger value="behavior">Spending Behavior</TabsTrigger>
+          <TabsTrigger value="anomaly">Anomaly Detection</TabsTrigger>
         </TabsList>
 
-        {/* ── Clustering Tab ─────────────────────────────────── */}
-        <TabsContent value="clustering" className="space-y-6 mt-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* ── Risk Tab ─────────────────────────────────────────── */}
+        <TabsContent value="risk" className="space-y-6 mt-6">
 
-            {/* Scatter Chart */}
-            <div className="cluster-card lg:col-span-2 bg-white rounded-2xl border-2 border-slate-200 p-8 shadow-lg">
-              <div className="mb-6">
-                <h2 className="text-2xl mb-1 text-slate-900">Customer Behavior Clusters</h2>
-                <p className="text-slate-500">
-                  ML-based segmentation of customer spending patterns (K-Means)
-                </p>
-              </div>
-              <ResponsiveContainer width="100%" height={380}>
-                <ScatterChart margin={{ top: 10, right: 20, bottom: 20, left: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis type="number" dataKey="x" name="Frequency" stroke="#94a3b8" axisLine={false} tickLine={false}
-                    label={{ value: "Transaction Frequency", position: "insideBottom", offset: -12, fill: "#94a3b8", fontSize: 12 }}
-                    style={{ fontSize: "12px", fontFamily: "Crimson Pro, serif" }} />
-                  <YAxis type="number" dataKey="y" name="Recency"   stroke="#94a3b8" axisLine={false} tickLine={false}
-                    label={{ value: "Days Since Purchase", angle: -90, position: "insideLeft", offset: 16, fill: "#94a3b8", fontSize: 12 }}
-                    style={{ fontSize: "12px", fontFamily: "Crimson Pro, serif" }} />
-                  <Tooltip cursor={{ strokeDasharray: "3 3" }} content={({ active, payload }) => {
-                    if (!active || !payload?.length) return null;
-                    const d = payload[0].payload;
-                    return (
-                      <div className="bg-white border-2 border-slate-200 rounded-xl shadow-xl p-3">
-                        <p className="font-semibold text-slate-900 text-sm">{d.cluster}</p>
-                        <p className="text-xs text-slate-500 mt-1">Frequency: {d.x} · Recency: {d.y}</p>
-                      </div>
-                    );
-                  }} />
-                  <Legend content={renderLegend} />
-                  {Object.entries(clusterColors).map(([cluster, color]) => (
-                    <Scatter
-                      key={cluster}
-                      name={cluster}
-                      data={clusteringData.filter((d) => d.cluster === cluster)}
-                      fill={color}
-                      fillOpacity={0.8}
-                    />
-                  ))}
-                </ScatterChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* Cluster Summary */}
-            <div className="bg-white rounded-2xl border-2 border-slate-200 p-8 shadow-lg">
-              <h2 className="text-2xl mb-6 text-slate-900">Cluster Summary</h2>
-              <div className="space-y-4">
-                {clusterSummary.map((cluster) => (
-                  <div key={cluster.name} className="cluster-item">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2.5">
-                        <div className="size-3 rounded-full" style={{ backgroundColor: cluster.color }} />
-                        <span className="text-sm font-medium text-slate-800">{cluster.name}</span>
-                      </div>
-                      <span className="text-sm text-slate-500">{cluster.count.toLocaleString()}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs text-slate-400">Avg. LTV</p>
-                      <p className="cluster-ltv" style={{ color: cluster.color }}>{cluster.ltv}</p>
-                    </div>
-                    <div className="mt-2 risk-bar-track">
-                      <div
-                        className="risk-bar-fill"
-                        style={{ width: `${cluster.pct}%`, backgroundColor: cluster.color }}
-                      />
-                    </div>
-                    <p className="text-xs text-slate-400 mt-1 text-right">{cluster.pct}% of base</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Behavior Radar */}
+          {/* Risk Band Timeline */}
           <div className="bg-white rounded-2xl border-2 border-slate-200 p-8 shadow-lg">
             <div className="mb-6">
-              <h2 className="text-2xl mb-1 text-slate-900">Spending Behavior Patterns</h2>
-              <p className="text-slate-500">
-                Multi-dimensional behavioral scoring across key financial behavior axes
-              </p>
+              <h2 className="text-2xl mb-1 text-slate-900">Risk Ratio Timeline</h2>
+              <p className="text-slate-500">Expense-to-revenue, anomaly rate, and current ratio across quarters</p>
             </div>
-            <ResponsiveContainer width="100%" height={360}>
-              <RadarChart data={behaviorPatterns}>
-                <PolarGrid stroke="#e2e8f0" />
-                <PolarAngleAxis dataKey="behavior" stroke="#64748b"
-                  style={{ fontSize: "13px", fontFamily: "Crimson Pro, serif" }} />
-                <PolarRadiusAxis angle={90} domain={[0, 100]} stroke="#94a3b8"
-                  style={{ fontSize: "11px" }} />
-                <Radar
-                  name="Behavior Score"
-                  dataKey="value"
-                  stroke={COLORS.primary}
-                  fill={COLORS.primary}
-                  fillOpacity={0.25}
-                  strokeWidth={2.5}
-                />
-                <Tooltip
-                  formatter={(val) => [`${val}%`, "Score"]}
-                  contentStyle={{ borderRadius: "0.75rem", border: "2px solid #e2e8f0" }}
-                />
-                <Legend content={renderLegend} />
-              </RadarChart>
-            </ResponsiveContainer>
-          </div>
-        </TabsContent>
-
-        {/* ── Predictive Tab ─────────────────────────────────── */}
-        <TabsContent value="predictive" className="space-y-6 mt-6">
-
-          {/* Prediction Chart */}
-          <div className="bg-white rounded-2xl border-2 border-slate-200 p-8 shadow-lg">
-            <div className="mb-6">
-              <h2 className="text-2xl mb-1 text-slate-900">Future Spending Predictions</h2>
-              <p className="text-slate-500">
-                AI-powered forecasting based on historical patterns — dashed line shows predictions
-              </p>
-            </div>
-            <ResponsiveContainer width="100%" height={380}>
-              <LineChart data={predictiveSpending}>
+            <ResponsiveContainer width="100%" height={340}>
+              <LineChart data={riskLineData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                <XAxis dataKey="month" stroke="#94a3b8" axisLine={false} tickLine={false}
-                  style={{ fontSize: "13px", fontFamily: "Crimson Pro, serif" }} />
+                <XAxis dataKey="label" stroke="#94a3b8" axisLine={false} tickLine={false}
+                  style={{ fontSize: "12px" }} />
                 <YAxis stroke="#94a3b8" axisLine={false} tickLine={false}
-                  style={{ fontSize: "13px", fontFamily: "Crimson Pro, serif" }} />
+                  style={{ fontSize: "12px" }} />
                 <Tooltip content={<ChartTooltip />} />
                 <Legend content={renderLegend} />
-                <ReferenceLine x="Jun" stroke="#94a3b8" strokeDasharray="4 4"
-                  label={{ value: "Forecast →", position: "top", fill: "#94a3b8", fontSize: 12 }} />
-                <Line type="monotone" dataKey="actual"    stroke={COLORS.primary}   strokeWidth={3}
-                  dot={{ fill: COLORS.primary, r: 5, stroke: "white", strokeWidth: 2 }} name="Actual" />
-                <Line type="monotone" dataKey="predicted" stroke={COLORS.secondary} strokeWidth={2.5}
-                  strokeDasharray="6 4"
-                  dot={{ fill: COLORS.secondary, r: 4, stroke: "white", strokeWidth: 2 }} name="Predicted" />
+                <Line type="monotone" dataKey="expRatio"    stroke={COLORS.primary}   strokeWidth={2.5}
+                  dot={{ r: 4, fill: COLORS.primary, stroke: "white", strokeWidth: 2 }} name="Expense Ratio %" />
+                <Line type="monotone" dataKey="anomalyRate" stroke={COLORS.danger}    strokeWidth={2.5}
+                  dot={{ r: 4, fill: COLORS.danger,  stroke: "white", strokeWidth: 2 }} name="Anomaly Rate %" />
+                <Line type="monotone" dataKey="currentRatio" stroke={COLORS.gold}    strokeWidth={2}
+                  strokeDasharray="5 3"
+                  dot={{ r: 3, fill: COLORS.gold, stroke: "white", strokeWidth: 2 }} name="Current Ratio" />
+                <Line type="monotone" dataKey="debtToAsset" stroke={COLORS.purple}   strokeWidth={2}
+                  strokeDasharray="3 4"
+                  dot={{ r: 3, fill: COLORS.purple, stroke: "white", strokeWidth: 2 }} name="Debt-to-Asset %" />
               </LineChart>
             </ResponsiveContainer>
           </div>
 
-          {/* Risk + Model */}
+          {/* Financial Health Radar + Risk Band History */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-            {/* Risk Assessment */}
             <div className="bg-white rounded-2xl border-2 border-slate-200 p-8 shadow-lg">
               <div className="mb-6">
-                <h2 className="text-2xl mb-1 text-slate-900">Risk Assessment</h2>
-                <p className="text-slate-500">Customer distribution by financial risk profile</p>
+                <h2 className="text-2xl mb-1 text-slate-900">Financial Health Profile</h2>
+                <p className="text-slate-500">Latest quarter — normalised scores (0–100)</p>
               </div>
-              <div className="space-y-5">
-                {riskSegments.map((seg) => (
-                  <div key={seg.segment}>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <div className="size-2.5 rounded-full" style={{ backgroundColor: seg.color }} />
-                        <span className="text-sm font-medium text-slate-800">{seg.segment}</span>
-                      </div>
-                      <span className="text-sm text-slate-500">{seg.count.toLocaleString()} users</span>
-                    </div>
-                    <div className="risk-bar-track">
-                      <motion.div
-                        className="risk-bar-fill"
-                        initial={{ width: 0 }}
-                        whileInView={{ width: `${seg.percentage}%` }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.8, delay: 0.1 }}
-                        style={{ backgroundColor: seg.color }}
-                      />
-                    </div>
-                    <p className="text-xs text-slate-400 mt-1">{seg.percentage}% of total users</p>
-                  </div>
-                ))}
-              </div>
+              <ResponsiveContainer width="100%" height={280}>
+                <RadarChart data={radarData}>
+                  <PolarGrid stroke="#e2e8f0" />
+                  <PolarAngleAxis dataKey="metric" stroke="#94a3b8"
+                    style={{ fontSize: "12px" }} />
+                  <PolarRadiusAxis domain={[0, 100]} axisLine={false} tick={false} />
+                  <Radar name="Score" dataKey="value" stroke={COLORS.primary}
+                    fill={COLORS.primary} fillOpacity={0.25} strokeWidth={2} />
+                  <Tooltip />
+                </RadarChart>
+              </ResponsiveContainer>
             </div>
 
-            {/* Model Performance */}
+            {/* Risk Band History */}
             <div className="bg-white rounded-2xl border-2 border-slate-200 p-8 shadow-lg">
               <div className="mb-6">
-                <h2 className="text-2xl mb-1 text-slate-900">Model Performance</h2>
-                <p className="text-slate-500">ML model evaluation metrics vs targets</p>
+                <h2 className="text-2xl mb-1 text-slate-900">Risk Band History</h2>
+                <p className="text-slate-500">Actual vs predicted risk classification per quarter</p>
               </div>
-              <div className="space-y-5">
-                {modelMetrics.map((item) => (
-                  <div key={item.metric}>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-slate-800">{item.metric}</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-slate-400">Target: {item.target}%</span>
-                        <span className="text-sm font-semibold text-teal-700">{item.value}%</span>
-                      </div>
-                    </div>
-                    <div className="perf-bar-track">
-                      <motion.div
-                        className="perf-bar-fill"
-                        initial={{ width: 0 }}
-                        whileInView={{ width: `${item.value}%` }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.8, delay: 0.1 }}
-                      />
+              <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
+                {[...risk_timeline].reverse().map((q) => (
+                  <div key={`${q.fiscal_year}-${q.quarter}`}
+                    className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
+                    <span className="text-sm font-medium text-slate-700">
+                      FY{q.fiscal_year} Q{q.quarter}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="text-xs px-2.5 py-1 rounded-full font-semibold text-white"
+                        style={{ backgroundColor: RISK_BAND_COLOR[q.risk_band] || "#94a3b8" }}
+                      >
+                        {q.risk_band}
+                      </span>
+                      {q.predicted_band !== q.risk_band && (
+                        <span className="text-xs text-slate-400">
+                          → predicted <strong>{q.predicted_band}</strong>
+                        </span>
+                      )}
+                      <span className="text-xs text-slate-400">
+                        {(q.confidence * 100).toFixed(0)}%
+                      </span>
                     </div>
                   </div>
                 ))}
@@ -418,33 +350,133 @@ export default function AnalyticsPage() {
           </div>
         </TabsContent>
 
-        {/* ── Anomaly Tab ────────────────────────────────────── */}
-        <TabsContent value="anomaly" className="space-y-6 mt-6">
+        {/* ── Behavior Tab ─────────────────────────────────────── */}
+        <TabsContent value="behavior" className="space-y-6 mt-6">
 
-          {/* Anomaly Chart */}
+          {/* Spending Category Radar */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-white rounded-2xl border-2 border-slate-200 p-8 shadow-lg">
+              <div className="mb-6">
+                <h2 className="text-2xl mb-1 text-slate-900">Category Spend Profile</h2>
+                <p className="text-slate-500">Top 6 categories — relative spend intensity</p>
+              </div>
+              <ResponsiveContainer width="100%" height={280}>
+                <RadarChart data={behaviorRadar}>
+                  <PolarGrid stroke="#e2e8f0" />
+                  <PolarAngleAxis dataKey="category" stroke="#94a3b8"
+                    style={{ fontSize: "11px" }} />
+                  <PolarRadiusAxis domain={[0, 100]} axisLine={false} tick={false} />
+                  <Radar name="Spend %" dataKey="spend" stroke={COLORS.secondary}
+                    fill={COLORS.secondary} fillOpacity={0.25} strokeWidth={2} />
+                  <Tooltip />
+                </RadarChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Category spend bar — transaction count */}
+            <div className="bg-white rounded-2xl border-2 border-slate-200 p-8 shadow-lg">
+              <div className="mb-6">
+                <h2 className="text-2xl mb-1 text-slate-900">Transaction Frequency</h2>
+                <p className="text-slate-500">Number of transactions per expense category</p>
+              </div>
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart
+                  data={spending_by_category.slice(0, 8).map((c) => ({
+                    category: c.category.length > 14 ? c.category.slice(0, 13) + "…" : c.category,
+                    count: c.count,
+                  }))}
+                  layout="vertical"
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
+                  <XAxis type="number" stroke="#94a3b8" axisLine={false} tickLine={false}
+                    style={{ fontSize: "11px" }} />
+                  <YAxis type="category" dataKey="category" stroke="#94a3b8" axisLine={false}
+                    tickLine={false} width={115} style={{ fontSize: "11px" }} />
+                  <Tooltip />
+                  <Bar dataKey="count" name="# Transactions" fill={COLORS.purple} radius={[0, 6, 6, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* HMM State timeline from risk_timeline */}
           <div className="bg-white rounded-2xl border-2 border-slate-200 p-8 shadow-lg">
             <div className="mb-6">
-              <h2 className="text-2xl mb-1 text-slate-900">Anomaly Detection Timeline</h2>
+              <h2 className="text-2xl mb-1 text-slate-900">HMM Behavioral State History</h2>
+              <p className="text-slate-500">Hidden Markov Model state per quarter — tracks spending regime shifts</p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              {risk_timeline.map((q) => {
+                const stateColors = {
+                  0: COLORS.secondary, 1: COLORS.primary, 2: COLORS.warning,
+                  3: COLORS.danger,    4: COLORS.purple,
+                };
+                const stateLabels = {
+                  0: "Financially Stable",
+                  1: "Moderate Spending",
+                  2: "Elevated Spending",
+                  3: "High Risk",
+                  4: "Critical",
+                };
+                const state = q.hmm_state ?? "—";
+                const color = stateColors[state] || "#94a3b8";
+                return (
+                  <div key={`${q.fiscal_year}-${q.quarter}`}
+                    className="flex flex-col items-center bg-slate-50 border-2 border-slate-200
+                               rounded-xl px-4 py-3 min-w-[90px] hover:shadow-md transition-shadow">
+                    <span className="text-xs text-slate-400 mb-1">FY{q.fiscal_year} Q{q.quarter}</span>
+                    <div className="size-8 rounded-full flex items-center justify-center text-white text-xs font-bold mb-1"
+                      style={{ backgroundColor: color }}>
+                      {state}
+                    </div>
+                    <span className="text-[10px] text-center text-slate-500 leading-tight">
+                      {stateLabels[state] || "Unknown"}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* ── Anomaly Tab ──────────────────────────────────────── */}
+        <TabsContent value="anomaly" className="space-y-6 mt-6">
+
+          {/* Anomaly Timeline from recent transactions */}
+          <div className="bg-white rounded-2xl border-2 border-slate-200 p-8 shadow-lg">
+            <div className="mb-6">
+              <h2 className="text-2xl mb-1 text-slate-900">Transaction Amount Timeline</h2>
               <p className="text-slate-500">
-                Real-time monitoring — red bars indicate transactions exceeding normal thresholds
+                Recent transactions — red bars exceed the average threshold
               </p>
             </div>
             <ResponsiveContainer width="100%" height={340}>
-              <BarChart data={anomalyData}>
+              <BarChart
+                data={recent_transactions.map((t) => ({
+                  id:      t.transaction_id,
+                  amount:  Math.round(t.amount),
+                  anomaly: t.is_anomaly,
+                  date:    t.date,
+                }))}
+              >
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                 <XAxis dataKey="date" stroke="#94a3b8" axisLine={false} tickLine={false}
-                  style={{ fontSize: "12px", fontFamily: "Crimson Pro, serif" }} />
+                  style={{ fontSize: "10px" }} angle={-30} dy={10} />
                 <YAxis stroke="#94a3b8" axisLine={false} tickLine={false}
-                  style={{ fontSize: "12px", fontFamily: "Crimson Pro, serif" }} />
-                <Tooltip content={<ChartTooltip />} />
-                <Legend content={renderLegend} />
-                <Bar dataKey="threshold" fill="#e2e8f0" name="Normal Threshold" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="amount" name="Daily Spend" radius={[4, 4, 0, 0]}>
-                  {anomalyData.map((entry, i) => (
+                  style={{ fontSize: "11px" }}
+                  tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
+                <Tooltip
+                  formatter={(v) => [`PKR ${v.toLocaleString()}`, "Amount"]}
+                  labelFormatter={(l) => `Date: ${l}`}
+                />
+                <ReferenceLine y={avgAmount} stroke={COLORS.warning} strokeDasharray="6 3"
+                  label={{ value: "Avg", position: "insideTopRight", fontSize: 11, fill: COLORS.warning }} />
+                <Bar dataKey="amount" name="Transaction Amount" radius={[4, 4, 0, 0]}>
+                  {recent_transactions.map((entry, i) => (
                     <Cell
                       key={i}
-                      fill={entry.anomaly ? COLORS.danger : COLORS.secondary}
-                      fillOpacity={entry.anomaly ? 0.9 : 0.7}
+                      fill={entry.is_anomaly ? COLORS.danger : COLORS.secondary}
+                      fillOpacity={entry.is_anomaly ? 0.9 : 0.7}
                     />
                   ))}
                 </Bar>
@@ -452,74 +484,120 @@ export default function AnalyticsPage() {
             </ResponsiveContainer>
           </div>
 
-          {/* Anomaly summary cards */}
+          {/* Severity Summary */}
           <div className="grid grid-cols-3 gap-5">
             <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-6 text-center">
-              <p className="text-3xl font-semibold text-red-700">3</p>
-              <p className="text-sm text-red-600 mt-1">High Severity</p>
+              <p className="text-3xl font-semibold text-red-700">{highCount}</p>
+              <p className="text-sm text-red-600 mt-1">High Severity Categories</p>
             </div>
             <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-6 text-center">
-              <p className="text-3xl font-semibold text-amber-700">5</p>
-              <p className="text-sm text-amber-600 mt-1">Medium Severity</p>
+              <p className="text-3xl font-semibold text-amber-700">{mediumCount}</p>
+              <p className="text-sm text-amber-600 mt-1">Medium Severity Categories</p>
             </div>
             <div className="bg-emerald-50 border-2 border-emerald-200 rounded-2xl p-6 text-center">
-              <p className="text-3xl font-semibold text-emerald-700">4</p>
-              <p className="text-sm text-emerald-600 mt-1">Low Severity</p>
+              <p className="text-3xl font-semibold text-emerald-700">{lowCount}</p>
+              <p className="text-sm text-emerald-600 mt-1">Low Severity Categories</p>
             </div>
           </div>
 
-          {/* Anomaly Table */}
+          {/* Anomaly by Category Bar */}
           <div className="bg-white rounded-2xl border-2 border-slate-200 p-8 shadow-lg">
             <div className="mb-6">
-              <h2 className="text-2xl mb-1 text-slate-900">Recent Anomalies</h2>
-              <p className="text-slate-500">Flagged transactions requiring investigation</p>
+              <h2 className="text-2xl mb-1 text-slate-900">Anomalies by Category</h2>
+              <p className="text-slate-500">Flagged transaction counts per expense category</p>
+            </div>
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={anomalyBarData} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
+                <XAxis type="number" stroke="#94a3b8" axisLine={false} tickLine={false}
+                  style={{ fontSize: "11px" }} />
+                <YAxis type="category" dataKey="category" stroke="#94a3b8" axisLine={false}
+                  tickLine={false} width={120} style={{ fontSize: "11px" }} />
+                <Tooltip />
+                <Bar dataKey="count" name="Anomaly Count" radius={[0, 6, 6, 0]}>
+                  {anomalyBarData.map((entry, i) => (
+                    <Cell
+                      key={i}
+                      fill={
+                        entry.severity === "high"   ? COLORS.danger :
+                        entry.severity === "medium" ? COLORS.warning :
+                        COLORS.secondary
+                      }
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Anomaly Transactions Table */}
+          <div className="bg-white rounded-2xl border-2 border-slate-200 p-8 shadow-lg">
+            <div className="mb-6">
+              <h2 className="text-2xl mb-1 text-slate-900">Flagged Transactions</h2>
+              <p className="text-slate-500">
+                Anomalous transactions from the latest batch ({" "}
+                {recent_transactions.filter((t) => t.is_anomaly).length} flagged)
+              </p>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b-2 border-slate-200 text-left text-xs text-slate-500 font-semibold uppercase tracking-wider">
-                    <th className="pb-4">Type</th>
+                    <th className="pb-4">Transaction</th>
                     <th className="pb-4">Date</th>
-                    <th className="pb-4">Amount</th>
-                    <th className="pb-4">Severity</th>
-                    <th className="pb-4">Description</th>
+                    <th className="pb-4">Category</th>
+                    <th className="pb-4 text-right">Amount (PKR)</th>
+                    <th className="pb-4 text-right">Severity</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {detectedAnomalies.map((anomaly) => (
-                    <tr key={anomaly.id} className="anomaly-row">
-                      <td className="py-4">
-                        <div className="flex items-center gap-2">
-                          <AlertTriangle
-                            className={`size-4 ${
-                              anomaly.severity === "high"
-                                ? "text-red-500"
-                                : anomaly.severity === "medium"
-                                ? "text-amber-500"
-                                : "text-emerald-500"
-                            }`}
-                          />
-                          <span className="text-sm font-medium text-slate-800">
-                            {anomaly.type}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="py-4 text-sm text-slate-500 whitespace-nowrap">
-                        {anomaly.date}
-                      </td>
-                      <td className="py-4 text-sm font-semibold text-slate-900">
-                        {anomaly.amount}
-                      </td>
-                      <td className="py-4">
-                        <span className={getSeverityClass(anomaly.severity)}>
-                          {anomaly.severity.charAt(0).toUpperCase() + anomaly.severity.slice(1)}
-                        </span>
-                      </td>
-                      <td className="py-4 text-sm text-slate-500">
-                        {anomaly.description}
+                  {recent_transactions
+                    .filter((t) => t.is_anomaly)
+                    .map((t) => {
+                      const catAnomaly = anomaly_by_category.find(
+                        (a) => a.category === t.category
+                      );
+                      const sev = catAnomaly
+                        ? classifySeverity(catAnomaly.count, maxAnomalyCount)
+                        : "low";
+                      return (
+                        <tr key={t.transaction_id} className="anomaly-row border-b border-slate-100 last:border-0">
+                          <td className="py-4">
+                            <div className="flex items-center gap-2">
+                              <AlertTriangle
+                                className={`size-4 flex-shrink-0 ${
+                                  sev === "high"   ? "text-red-500" :
+                                  sev === "medium" ? "text-amber-500" : "text-emerald-500"
+                                }`}
+                              />
+                              <div>
+                                <p className="text-sm font-medium text-slate-800 truncate max-w-[200px]">
+                                  {t.description || t.transaction_id}
+                                </p>
+                                <p className="text-xs text-slate-400">{t.transaction_id}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-4 text-sm text-slate-500 whitespace-nowrap">{t.date}</td>
+                          <td className="py-4 text-sm text-slate-600">{t.category || "—"}</td>
+                          <td className="py-4 text-sm font-semibold text-slate-900 text-right">
+                            {t.amount.toLocaleString()}
+                          </td>
+                          <td className="py-4 text-right">
+                            <span className={getSeverityClass(sev)}>
+                              {sev.charAt(0).toUpperCase() + sev.slice(1)}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  {recent_transactions.filter((t) => t.is_anomaly).length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="py-8 text-center text-slate-400 text-sm">
+                        No anomalies in the latest batch.
                       </td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>
