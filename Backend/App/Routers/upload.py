@@ -11,6 +11,11 @@ from Schemas.transaction import SingleExpenseInput
 from Crud.quarterly import bulk_insert_quarterly
 from Models.quarterly import QuarterlySummary
 from Models.transactions import Transaction
+from openai import OpenAI
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 router = APIRouter()
 
@@ -154,13 +159,70 @@ def analyze_single_expense(expense: SingleExpenseInput, db: Session):
         # Use a reasonable threshold or the one from training if we had it.
         # Here we'll just check if it's considered an outlier by IsolationForest (typically score < 0)
         is_anomaly = bool(iso_model.predict(X_scaled)[0] == -1)
+        if is_anomaly == True:
+            prompt = f"""You are a financial fraud detection assistant for a corporate expense monitoring system.
 
+            Your task: Given a flagged transaction, return exactly TWO sentences:
+            1. The primary reason this transaction was flagged as anomalous (cite specific metric names and values).
+            2. Whether this flag appears legitimate or likely a false positive, and why.
+
+            No preamble, no labels, no bullet points — just the two sentences.
+
+            Transaction:
+            - Department: {expense.department}
+            - Category: {predicted_category}
+            - Vendor: {expense.vendor_name} (seen {vendor_freq}x, avg PKR {vendor_avg_amount:.0f})
+            - Description: {expense.transaction_description}
+            - Amount: PKR {expense.amount_pkr:,.0f}
+            - Payment Method: {expense.payment_method}
+
+            Anomaly Signals:
+            - Is Anomaly (Isolation Forest): {is_anomaly}  ← model flagged this as an outlier
+            - Anomaly Score: {anomaly_score:.4f}           ← closer to -1 = more anomalous, near 0 = borderline
+            - Dept Z-Score: {amount_zscore_dept:.2f}       ← std devs above dept average (suspicious if > 2.0)
+            - Amount/Revenue Ratio: {amount_revenue_ratio:.6f}  ← suspicious if disproportionately high
+            - Vendor Frequency: {vendor_freq}              ← suspicious if very low (rare/unknown vendor)
+            - Vendor Avg Amount: PKR {vendor_avg_amount:.0f}    ← suspicious if current amount far exceeds this
+            - HMM Financial State: {quarter_data.hmm_state}    ← company's financial regime this quarter (e.g. Financially Stable, Distressed, Recovery, Under Pressure); 
+            - Risk Band: {quarter_data.risk_band}              ← overall risk tier assigned to this quarter (Low / Medium / High); High means the company is already under financial stress
+
+
+            Rules:
+            1. Sentence 1 — cite the top 1-2 metrics that most strongly support the anomaly flag (include their values).
+            2. Sentence 2 — if the anomaly score is borderline (close to 0), z-score is low, and vendor is familiar, lean toward false positive. Otherwise, confirm the flag as likely legitimate.
+            3. Plain business language. No jargon. Hard limit: 50 words total across both sentences.
+            4. Output only the two sentences."""
+
+            client = OpenAI(
+                base_url="https://openrouter.ai/api/v1",
+                api_key=os.getenv("API_KEY")
+            )
+
+            response = client.chat.completions.create(
+            model="openai/gpt-4o-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are an expert financial anomaly detection analyst."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            temperature=0.3
+            )
+
+            result = response.choices[0].message.content.strip()
+        else:
+            result = "Transaction is not an anomaly."
         return {
             "predicted_category": predicted_category,
             "is_anomaly": is_anomaly,
             "anomaly_score": float(anomaly_score),
             "hmm_state": quarter_data.hmm_state,
-            "risk_band": quarter_data.risk_band
+            "risk_band": quarter_data.risk_band,
+            "response": result
         }
     except Exception as e:
         print(f"Analysis error: {str(e)}")
