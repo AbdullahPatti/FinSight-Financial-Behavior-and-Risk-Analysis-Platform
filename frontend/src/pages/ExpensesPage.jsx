@@ -472,6 +472,17 @@ export default function ExpensesPage() {
                       State: <span className="font-semibold">{analysisResult.hmm_state}</span> | 
                       Risk: <span className={`font-bold ${analysisResult.risk_band === 'High' ? 'text-red-600' : 'text-teal-600'}`}>{analysisResult.risk_band}</span>
                     </p>
+
+                    {analysisResult.response && analysisResult.response !== "Transaction is not an anomaly." && (
+                      <div className={`mt-1 p-4 rounded-xl border ${analysisResult.is_anomaly ? 'bg-white/60 border-red-200' : 'bg-white/60 border-teal-200'}`}>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
+                          <span>🤖</span> AI Analysis
+                        </p>
+                        <p className="text-sm text-slate-700 leading-relaxed">
+                          {analysisResult.response}
+                        </p>
+                      </div>
+                    )}
                   </motion.div>
                 )}
 

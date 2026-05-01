@@ -12,3 +12,5 @@ gensim
 hmmlearn 
 python-multipart
 pydantic[email]
+google-genai
+openai

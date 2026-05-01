@@ -11,3 +11,4 @@ nltk
 gensim 
 hmmlearn 
 python-multipart
+google-genai
