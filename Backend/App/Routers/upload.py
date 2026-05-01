@@ -12,6 +12,11 @@ from Crud.quarterly import bulk_insert_quarterly
 from Models.quarterly import QuarterlySummary
 from Models.transactions import Transaction
 from openai import OpenAI
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 router = APIRouter()
 
 @router.post("/")
@@ -190,7 +195,7 @@ def analyze_single_expense(expense: SingleExpenseInput, db: Session):
 
             client = OpenAI(
                 base_url="https://openrouter.ai/api/v1",
-                api_key="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"
+                api_key=os.getenv("API_KEY")
             )
 
             response = client.chat.completions.create(

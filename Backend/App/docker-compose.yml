@@ -10,6 +10,7 @@ services:
       - finsight_db:/app/data   # only mount the db volume, not the whole project
     environment:
       - PYTHONUNBUFFERED=1
+      - API_KEY=${API_KEY}
     restart: unless-stopped
 
 volumes:
