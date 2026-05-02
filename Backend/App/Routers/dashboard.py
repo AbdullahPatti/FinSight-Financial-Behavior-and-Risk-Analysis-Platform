@@ -18,7 +18,7 @@ def get_dashboard(
     Only accessible to authenticated users.
     """
     try:
-        data = get_dashboard_data(db)
+        data = get_dashboard_data(db, current_user.id)
         return data
     except Exception as e:
         print(f"Dashboard error: {str(e)}")

@@ -3,7 +3,7 @@ from Models.transactions import Transaction
 import pandas as pd
 import os
 
-def bulk_insert_transactions(db: Session):
+def bulk_insert_transactions(db: Session, user_id: int):
     if not os.path.exists("temp_hmm.csv"):
         return False
     df = pd.read_csv("temp_hmm.csv")
@@ -35,7 +35,8 @@ def bulk_insert_transactions(db: Session):
             hmm_state=row.get('hmm_state'),
             is_anomaly=bool(row.get('is_anomaly', 0)),
             review_tier=row.get('review_tier'),
-            predicted_category=row.get('predicted_category')
+            predicted_category=row.get('predicted_category'),
+            user_id=user_id
         )
         db.add(txn)
         new_count += 1
@@ -44,8 +45,8 @@ def bulk_insert_transactions(db: Session):
     print(f"Inserted {new_count} new transactions, skipped {skipped_count} duplicates")
     return True
 
-def get_transactions(db: Session, skip: int = 0, limit: int = 50, department=None, category=None, anomaly=None):
-    query = db.query(Transaction)
+def get_transactions(db: Session, user_id: int, skip: int = 0, limit: int = 50, department=None, category=None, anomaly=None):
+    query = db.query(Transaction).filter(Transaction.user_id == user_id)
     if department:
         query = query.filter(Transaction.department == department)
     if category:

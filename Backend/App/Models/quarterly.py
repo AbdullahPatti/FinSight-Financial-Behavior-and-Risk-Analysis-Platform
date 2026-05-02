@@ -16,3 +16,4 @@ class QuarterlySummary(Base):
     risk_band = Column(String)
     predicted_band = Column(String)
     confidence = Column(Float)
+    user_id = Column(Integer, index=True)

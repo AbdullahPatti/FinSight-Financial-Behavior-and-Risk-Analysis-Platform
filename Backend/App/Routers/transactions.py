@@ -19,7 +19,7 @@ def export_anomalies(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),   # ← requires valid JWT
 ):
-    transactions = get_transactions(db=db, skip=0, limit=100000, anomaly=True)
+    transactions = get_transactions(db=db, user_id=current_user.id, skip=0, limit=100000, anomaly=True)
 
     output = io.StringIO()
     writer = csv.writer(output)
@@ -58,7 +58,7 @@ def list_transactions(
     current_user: User = Depends(get_current_user),   # ← requires valid JWT
 ):
     transactions = get_transactions(
-        db=db, skip=skip, limit=limit,
+        db=db, user_id=current_user.id, skip=skip, limit=limit,
         department=department, category=category, anomaly=anomaly,
     )
     return {
@@ -73,7 +73,7 @@ def get_single_transaction(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),   # ← requires valid JWT
 ):
-    txn = db.query(Transaction).filter(Transaction.transaction_id == transaction_id).first()
+    txn = db.query(Transaction).filter(Transaction.transaction_id == transaction_id, Transaction.user_id == current_user.id).first()
     if not txn:
         return {"error": "Transaction not found"}
     return txn.__dict__
