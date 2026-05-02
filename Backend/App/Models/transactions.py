@@ -19,3 +19,4 @@ class Transaction(Base):
     is_anomaly = Column(Boolean, default=False)
     review_tier = Column(String)
     predicted_category = Column(String)
+    user_id = Column(Integer, index=True)

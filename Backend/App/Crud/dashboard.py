@@ -4,7 +4,7 @@ from Models.quarterly import QuarterlySummary
 from sqlalchemy import func
 from datetime import datetime
 
-def get_dashboard_data(db: Session):
+def get_dashboard_data(db: Session, user_id: int):
     """
     Comprehensive dashboard data for financial analytics.
     Adapted to work with transaction and quarterly summary data.
@@ -12,30 +12,32 @@ def get_dashboard_data(db: Session):
     
     # Get latest quarter (with null safety)
     latest_quarter = db.query(QuarterlySummary)\
+        .filter(QuarterlySummary.user_id == user_id)\
         .order_by(QuarterlySummary.fiscal_year.desc(), QuarterlySummary.quarter.desc())\
         .first()
     
-    # Count total transactions
-    total_transactions = db.query(Transaction).count()
+    # Count total transactions for current user
+    total_transactions = db.query(Transaction).filter(Transaction.user_id == user_id).count()
     
-    # Calculate total and average expenses
+    # Calculate total and average expenses for current user
     expense_stats = db.query(
         func.sum(Transaction.amount_pkr).label("total"),
         func.avg(Transaction.amount_pkr).label("average"),
         func.count(Transaction.id).label("count")
-    ).first()
+    ).filter(Transaction.user_id == user_id).first()
     
     total_expense = float(expense_stats.total) if expense_stats.total else 0.0
     avg_expense = float(expense_stats.average) if expense_stats.average else 0.0
 
-    # Count anomalies
+    # Count anomalies for current user
     anomaly_count = db.query(Transaction)\
-        .filter(Transaction.is_anomaly == True).count()
+        .filter(Transaction.user_id == user_id, Transaction.is_anomaly == True).count()
     
     anomaly_rate = (anomaly_count / total_transactions * 100) if total_transactions > 0 else 0.0
 
-    # Get recent transactions (with proper dict conversion)
+    # Get recent transactions for current user
     recent_transactions = db.query(Transaction)\
+        .filter(Transaction.user_id == user_id)\
         .order_by(Transaction.date.desc())\
         .limit(10).all()
     
@@ -52,12 +54,13 @@ def get_dashboard_data(db: Session):
             "department": t.department
         })
 
-    # Spending by category
+    # Spending by category for current user
     spending_by_category = db.query(
         Transaction.expense_category,
         func.sum(Transaction.amount_pkr).label("amount"),
         func.count(Transaction.id).label("count")
-    ).group_by(Transaction.expense_category)\
+    ).filter(Transaction.user_id == user_id)\
+     .group_by(Transaction.expense_category)\
      .order_by(func.sum(Transaction.amount_pkr).desc())\
      .all()
 
@@ -70,11 +73,12 @@ def get_dashboard_data(db: Session):
         for cat, amt, cnt in spending_by_category
     ]
 
-    # Spending by department
+    # Spending by department for current user
     spending_by_department = db.query(
         Transaction.department,
         func.sum(Transaction.amount_pkr).label("amount")
-    ).group_by(Transaction.department)\
+    ).filter(Transaction.user_id == user_id)\
+     .group_by(Transaction.department)\
      .order_by(func.sum(Transaction.amount_pkr).desc())\
      .all()
 
@@ -88,6 +92,7 @@ def get_dashboard_data(db: Session):
 
     # Risk timeline from quarterly summaries
     all_quarters = db.query(QuarterlySummary)\
+        .filter(QuarterlySummary.user_id == user_id)\
         .order_by(QuarterlySummary.fiscal_year, QuarterlySummary.quarter)\
         .all()
     
@@ -110,7 +115,7 @@ def get_dashboard_data(db: Session):
     anomaly_by_category = db.query(
         Transaction.expense_category,
         func.count(Transaction.id).label("count")
-    ).filter(Transaction.is_anomaly == True)\
+    ).filter(Transaction.user_id == user_id, Transaction.is_anomaly == True)\
      .group_by(Transaction.expense_category)\
      .order_by(func.count(Transaction.id).desc())\
      .all()
@@ -128,7 +133,8 @@ def get_dashboard_data(db: Session):
         Transaction.approval_status,
         func.count(Transaction.id).label("count"),
         func.sum(Transaction.amount_pkr).label("amount")
-    ).group_by(Transaction.approval_status)\
+    ).filter(Transaction.user_id == user_id)\
+     .group_by(Transaction.approval_status)\
      .all()
 
     approval_list = [

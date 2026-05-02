@@ -3,7 +3,7 @@ from Models.quarterly import QuarterlySummary
 import pandas as pd
 import os
 
-def bulk_insert_quarterly(db: Session):
+def bulk_insert_quarterly(db: Session, user_id: int):
     if not os.path.exists("risk_bands.csv"):
         return False
     df = pd.read_csv("risk_bands.csv")
@@ -15,10 +15,11 @@ def bulk_insert_quarterly(db: Session):
         fiscal_year = row['fiscal_year']
         quarter = row['quarter']
         
-        # Check if quarterly summary already exists
+        # Check if quarterly summary already exists for this user
         existing = db.query(QuarterlySummary).filter(
             (QuarterlySummary.fiscal_year == fiscal_year) &
-            (QuarterlySummary.quarter == quarter)
+            (QuarterlySummary.quarter == quarter) &
+            (QuarterlySummary.user_id == user_id)
         ).first()
         if existing:
             skipped_count += 1
@@ -36,7 +37,8 @@ def bulk_insert_quarterly(db: Session):
             hmm_state=row['hmm_state'],
             risk_band=row['risk_band'],
             predicted_band=row['predicted_band'],
-            confidence=float(row['confidence'])
+            confidence=float(row['confidence']),
+            user_id=user_id
         )
         db.add(q)
         new_count += 1

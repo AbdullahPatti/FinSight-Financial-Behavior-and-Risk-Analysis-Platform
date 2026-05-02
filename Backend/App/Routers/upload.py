@@ -45,11 +45,11 @@ async def upload_csv(
         if success:
             try:
                 print("\nInserting transactions into database...")
-                bulk_insert_transactions(db)
+                bulk_insert_transactions(db, current_user.id)
                 print("Transactions inserted successfully!")
 
                 print("Inserting quarterly summary into database...")
-                bulk_insert_quarterly(db)
+                bulk_insert_quarterly(db,current_user.id)
                 print("Quarterly summary inserted successfully!")
 
                 return {"message": "File uploaded and processed successfully", "status": "success"}
