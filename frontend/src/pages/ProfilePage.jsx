@@ -22,8 +22,9 @@ import { Switch } from "../components/switch";
 import { toast } from "sonner";
 import { motion } from "motion/react";
 import "../styles/profile.css";
-
-const BASE_URL = "http://localhost:8000";
+// ─── CHANGE 1: import shared auth fetch helper (replaces BASE_URL) ─────────
+import { apiFetch } from "../utils/api";
+// ──────────────────────────────────────────────────────────────────────────
 
 const PROFILE_STATS = [
   { label: "Transactions",  value: "2,847" },
@@ -70,12 +71,10 @@ export default function ProfilePage() {
   useEffect(() => {
     (async () => {
       try {
-        const userEmail = localStorage.getItem("user_email");
-        if (!userEmail) throw new Error("Missing logged-in user email");
-
-        const res = await fetch(
-          `${BASE_URL}/auth/profile?email=${encodeURIComponent(userEmail)}`
-        );
+        // ─── CHANGE 2: GET /auth/profile now uses JWT — no email query param ─
+        // The backend reads the user from the token, not from ?email=
+        const res = await apiFetch("/auth/profile");
+        // ─────────────────────────────────────────────────────────────────────
         if (!res.ok) throw new Error("Failed to load profile");
         const data = await res.json();
         setFullName(data.full_name ?? "");
@@ -92,22 +91,14 @@ export default function ProfilePage() {
   // ── Update profile ───────────────────────────────────────────
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
-    const userEmail = localStorage.getItem("user_email");
-    if (!userEmail) {
-      toast.error("No logged-in user found. Please sign in again.");
-      return;
-    }
-
     setSavingProfile(true);
     try {
-      const res = await fetch(
-        `${BASE_URL}/auth/profile?email=${encodeURIComponent(userEmail)}`,
-        {
+      // ─── CHANGE 3: PUT /auth/profile — token in header, no email param ───
+      const res = await apiFetch("/auth/profile", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ full_name: fullName }),
-        }
-      );
+      });
+      // ─────────────────────────────────────────────────────────────────────
       if (!res.ok) throw new Error("Update failed");
       toast.success("Profile updated successfully!");
     } catch {
@@ -140,10 +131,12 @@ export default function ProfilePage() {
     }
     setSavingPassword(true);
     try {
-      const res = await fetch(
-        `${BASE_URL}/auth/security/password?email=${encodeURIComponent(userEmail)}&new_password=${encodeURIComponent(newPwd)}`,
+      // ─── CHANGE 4: PUT /auth/security/password — token in header ─────────
+      const res = await apiFetch(
+        `/auth/security/password?new_password=${encodeURIComponent(newPwd)}`,
         { method: "PUT" }
       );
+      // ─────────────────────────────────────────────────────────────────────
       if (!res.ok) throw new Error("Password update failed");
       toast.success("Password updated successfully!");
       setCurrentPwd("");

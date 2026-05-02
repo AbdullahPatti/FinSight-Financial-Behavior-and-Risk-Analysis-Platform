@@ -7,10 +7,13 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - finsight_db:/app/data   # only mount the db volume, not the whole project
+      - finsight_db:/app
+      - .:/app
     environment:
       - PYTHONUNBUFFERED=1
       - API_KEY=${API_KEY}
+      - SECRET_KEY=${SECRET_KEY}
+      - ALGORITHM=${ALGORITHM}
     restart: unless-stopped
 
 volumes:

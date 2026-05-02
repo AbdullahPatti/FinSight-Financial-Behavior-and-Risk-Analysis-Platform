@@ -15,3 +15,7 @@ pydantic[email]
 google-genai
 openai
 python-dotenv
+passlib
+bcrypt==4.0.1
+python-jwt
+python-jose
