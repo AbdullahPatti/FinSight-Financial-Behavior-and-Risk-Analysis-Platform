@@ -16,8 +16,9 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import "../styles/expenses.css";
-
-const BASE_URL = "http://localhost:8000";
+// ─── CHANGE 1: import shared auth fetch helper (replaces BASE_URL) ─────────
+import { apiFetch } from "../utils/api";
+// ──────────────────────────────────────────────────────────────────────────
 
 const uploadedFiles = [
   { id: 1, name: "expenses_january.csv",  status: "processed",  date: "Feb 15, 2026", rows: 234 },
@@ -100,8 +101,9 @@ export default function ExpensesPage() {
   const [overview, setOverview] = useState(null);
 
   useEffect(() => {
-    // Fetch dashboard for overview stats
-    fetch(`${BASE_URL}/dashboard/`)
+    // ─── CHANGE 2: apiFetch injects token automatically ────────────────────
+    apiFetch("/dashboard/")
+    // ───────────────────────────────────────────────────────────────────────
       .then(async (r) => {
         const text = await r.text();
         return JSON.parse(text);
@@ -109,8 +111,9 @@ export default function ExpensesPage() {
       .then((d) => setOverview(d.overview))
       .catch(() => {});
 
-    // Fetch transactions (limit 50, sorted by date desc)
-    fetch(`${BASE_URL}/transactions/?limit=50`)
+    // ─── CHANGE 3 ──────────────────────────────────────────────────────────
+    apiFetch("/transactions/?limit=50")
+    // ───────────────────────────────────────────────────────────────────────
       .then(async (r) => {
         const text = await r.text();
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -145,18 +148,21 @@ export default function ExpensesPage() {
       rows: rowCount,
     }, ...prev]);
 
-    const formData = new FormData();
-    formData.append("file", file);
     try {
-      const res  = await fetch(`${BASE_URL}/upload/`, { method: "POST", body: formData });
+      // ─── CHANGE 4: apiFetch for CSV upload — token in header ─────────────
+      const uploadPayload = new FormData();
+      uploadPayload.append("file", file);
+      const res  = await apiFetch("/upload/", { method: "POST", body: uploadPayload });
+      // ───────────────────────────────────────────────────────────────────────
       const data = await res.json().catch(() => ({}));
       const ok   = res.ok && data?.status === "success";
       setFiles((prev) =>
         prev.map((item) => item.id === fileId ? { ...item, status: ok ? "processed" : "failed" } : item)
       );
       if (ok) {
-        // Refresh transactions after successful upload
-        fetch(`${BASE_URL}/transactions/?limit=50`)
+        // ─── CHANGE 5: token-authenticated refresh ──────────────────────────
+        apiFetch("/transactions/?limit=50")
+        // ────────────────────────────────────────────────────────────────────
           .then((r) => r.json())
           .then((d) => {
             const clean = (d.transactions || []).map(({ _sa_instance_state, ...rest }) => rest);
@@ -201,11 +207,23 @@ export default function ExpensesPage() {
     return true;
   });
 
-  // ── CSV Export ─────────────────────────────────────────────────
-
-  const exportCSV = () => {
-    window.location.href = `${BASE_URL}/transactions/export-anomalies`;
+  // ─── CHANGE 6: export uses apiFetch so token is sent in header ─────────
+  // Can't use window.location.href for authenticated downloads — use blob instead
+  const exportCSV = async () => {
+    try {
+      const res = await apiFetch("/transactions/export-anomalies");
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      a.href     = url;
+      a.download = `anomalies_export_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error("Export failed", e);
+    }
   };
+  // ────────────────────────────────────────────────────────────────────────
 
   const handleAddExpense = async (e) => {
     e.preventDefault();
@@ -220,11 +238,12 @@ export default function ExpensesPage() {
         quarter: parseInt(formData.quarter)
       };
 
-      const res = await fetch(`${BASE_URL}/upload/single`, {
+      // ─── CHANGE 7: single expense analysis — token in header ───────────
+      const res = await apiFetch("/upload/single", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
+      // ────────────────────────────────────────────────────────────────────
 
       const result = await res.json();
       if (res.ok && !result.error) {

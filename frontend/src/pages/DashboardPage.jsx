@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
 import MetricCard from "../components/MetricCard";
+// ─── CHANGE 1: import shared auth fetch helper ────────────────────────────
+import { apiFetch } from "../utils/api";
+// ─────────────────────────────────────────────────────────────────────────
 import {
   DollarSign,
   AlertTriangle,
@@ -96,12 +99,9 @@ export default function DashboardPage() {
   const [error, setError]   = useState(null);
 
   useEffect(() => {
-    // ── Change this to match your backend ──────────────────────
-    // e.g. "http://localhost:8000/api/dashboard/" if no Vite proxy
-    const API_URL = "http://localhost:8000/dashboard/";
-    // ───────────────────────────────────────────────────────────
-
-    fetch(API_URL)
+    // ─── CHANGE 2: use apiFetch — token injected automatically ─────────────
+    apiFetch("/dashboard/")
+    // ───────────────────────────────────────────────────────────────────────
       .then(async (r) => {
         const text = await r.text();
         if (!r.ok) throw new Error(`HTTP ${r.status}: ${text.slice(0, 200)}`);

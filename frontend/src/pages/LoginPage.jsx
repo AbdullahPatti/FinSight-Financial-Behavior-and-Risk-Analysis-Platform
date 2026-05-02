@@ -15,6 +15,11 @@ import {
 import { motion } from "motion/react";
 import "../styles/login.css";
 
+// ─── CHANGE 1 ──────────────────────────────────────────────────────────────
+// Import apiFetch so login uses the shared helper (and BASE_URL stays in one place)
+import { apiFetch } from "../utils/api";
+// ──────────────────────────────────────────────────────────────────────────
+
 const BRAND_STATS = [
   { label: "Assets Analyzed",     value: "$2.4B+" },
   { label: "Financial Firms",     value: "1,200+"  },
@@ -42,11 +47,14 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const res = await fetch("http://localhost:8000/auth/login", {
+      // ─── CHANGE 2 ────────────────────────────────────────────────────────
+      // Use apiFetch instead of raw fetch (no token needed for login itself,
+      // but using the helper keeps BASE_URL consistent)
+      const res = await apiFetch("/auth/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
+      // ─────────────────────────────────────────────────────────────────────
 
       const data = await res.json();
 
@@ -55,12 +63,21 @@ export default function LoginPage() {
         return;
       }
 
-      localStorage.setItem("user_name", data.user);
-      localStorage.setItem("user_plan", data.plan);
-      localStorage.setItem("user_email", data.email || email);
+      // ─── CHANGE 3 ────────────────────────────────────────────────────────
+      // Store the JWT token — this is what all protected pages will send.
+      // Also keep name/email/plan for UI display (ProfilePage, sidebar, etc.)
+      localStorage.setItem("access_token", data.access_token);   // ← NEW
+      localStorage.setItem("user_name",    data.user);
+      localStorage.setItem("user_plan",    data.plan);
+      localStorage.setItem("user_email",   data.email || email);
+      // ─────────────────────────────────────────────────────────────────────
+
       navigate("/dashboard");
-    } catch {
-      setError("Cannot reach the server. Make sure the backend is running.");
+    } catch (err) {
+      // apiFetch throws on 401 (redirects), catch other errors here
+      if (!err.message?.includes("Session expired")) {
+        setError("Cannot reach the server. Make sure the backend is running.");
+      }
     } finally {
       setLoading(false);
     }
@@ -146,82 +163,53 @@ export default function LoginPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
-              {/* Error banner */}
               {error && (
                 <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
                   {error}
                 </div>
               )}
 
-              {/* Email */}
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-slate-700">
-                  Email address
-                </Label>
+                <Label htmlFor="email" className="text-slate-700">Email address</Label>
                 <div className="auth-input-wrap rounded-xl border-2 border-slate-200 overflow-hidden">
                   <Input
-                    id="email"
-                    type="email"
-                    placeholder="you@company.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
+                    id="email" type="email" placeholder="you@company.com"
+                    value={email} onChange={(e) => setEmail(e.target.value)} required
                     className="h-12 border-0 bg-slate-50 focus-visible:ring-0 focus-visible:ring-offset-0 px-4"
                   />
                 </div>
               </div>
 
-              {/* Password */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="text-slate-700">
-                    Password
-                  </Label>
-                  <Link
-                    to="#"
-                    className="text-sm text-teal-700 hover:text-teal-800 hover:underline"
-                  >
+                  <Label htmlFor="password" className="text-slate-700">Password</Label>
+                  <Link to="#" className="text-sm text-teal-700 hover:text-teal-800 hover:underline">
                     Forgot password?
                   </Link>
                 </div>
                 <div className="auth-input-wrap relative rounded-xl border-2 border-slate-200 overflow-hidden">
                   <Input
-                    id="password"
-                    type={showPwd ? "text" : "password"}
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
+                    id="password" type={showPwd ? "text" : "password"} placeholder="••••••••"
+                    value={password} onChange={(e) => setPassword(e.target.value)} required
                     className="h-12 border-0 bg-slate-50 focus-visible:ring-0 focus-visible:ring-offset-0 pr-12 px-4"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPwd(!showPwd)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                  >
+                  <button type="button" onClick={() => setShowPwd(!showPwd)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
                     {showPwd ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
                   </button>
                 </div>
               </div>
 
-              {/* Submit */}
-              <button
-                type="submit"
-                disabled={loading}
-                className="auth-btn-primary w-full h-12 rounded-xl flex items-center justify-center gap-2 text-white font-medium disabled:opacity-70 disabled:cursor-not-allowed mt-2"
-              >
+              <button type="submit" disabled={loading}
+                className="auth-btn-primary w-full h-12 rounded-xl flex items-center justify-center gap-2 text-white font-medium disabled:opacity-70 disabled:cursor-not-allowed mt-2">
                 {loading ? (
                   <div className="size-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
                 ) : (
-                  <>
-                    Sign In
-                    <ArrowRight className="size-5" />
-                  </>
+                  <> Sign In <ArrowRight className="size-5" /> </>
                 )}
               </button>
             </form>
 
-            {/* Divider */}
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-slate-200" />
@@ -231,22 +219,15 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Demo link */}
-            <Link
-              to="/dashboard?demo=true"
-              className="flex items-center justify-center gap-2 w-full h-11 rounded-xl border-2 border-teal-200 text-teal-700 hover:bg-teal-50 hover:border-teal-300 transition-all text-sm font-medium"
-            >
+            <Link to="/dashboard?demo=true"
+              className="flex items-center justify-center gap-2 w-full h-11 rounded-xl border-2 border-teal-200 text-teal-700 hover:bg-teal-50 hover:border-teal-300 transition-all text-sm font-medium">
               <Eye className="size-4" />
               Explore Demo (No sign-up needed)
             </Link>
 
-            {/* Sign up */}
             <p className="text-center text-sm text-slate-500 mt-6">
               Don&apos;t have an account?{" "}
-              <Link
-                to="/signup"
-                className="text-teal-700 hover:text-teal-800 font-semibold hover:underline"
-              >
+              <Link to="/signup" className="text-teal-700 hover:text-teal-800 font-semibold hover:underline">
                 Create one free
               </Link>
             </p>

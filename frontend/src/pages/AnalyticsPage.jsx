@@ -1,4 +1,7 @@
 import { useState, useEffect } from "react";
+// ─── CHANGE 1: import shared auth fetch helper ────────────────────────────
+import { apiFetch } from "../utils/api";
+// ─────────────────────────────────────────────────────────────────────────
 import {
   AlertTriangle,
   Brain,
@@ -99,9 +102,9 @@ export default function AnalyticsPage() {
   const [selectedTab, setSelectedTab] = useState("risk");
 
   useEffect(() => {
-    const API_URL = "http://localhost:8000/dashboard/";
-
-    fetch(API_URL)
+    // ─── CHANGE 2: use apiFetch — token injected automatically ─────────────
+    apiFetch("/dashboard/")
+    // ───────────────────────────────────────────────────────────────────────
       .then(async (r) => {
         const text = await r.text();
         if (!r.ok) throw new Error(`HTTP ${r.status}: ${text.slice(0, 200)}`);

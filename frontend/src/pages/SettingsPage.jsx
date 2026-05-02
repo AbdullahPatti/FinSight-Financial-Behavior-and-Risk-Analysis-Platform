@@ -21,6 +21,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/tabs";
 import { toast } from "sonner";
 import { motion } from "motion/react";
 import "../styles/settings.css";
+// ─── CHANGE 1: import shared auth fetch helper ────────────────────────────
+import { apiFetch } from "../utils/api";
+// ─────────────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -40,6 +43,13 @@ export default function SettingsPage() {
 
   const handleDeleteAccount = () =>
     toast.error("Account deletion requires email confirmation. Check your inbox.");
+
+  // ─── CHANGE 2: logout clears the JWT token from localStorage ─────────────
+  const handleLogout = () => {
+    localStorage.clear();
+    window.location.href = "/login";
+  };
+  // ─────────────────────────────────────────────────────────────────────────
 
   const SESSIONS = [
     { device: "Chrome on MacBook Pro", location: "San Francisco, CA", current: true  },
