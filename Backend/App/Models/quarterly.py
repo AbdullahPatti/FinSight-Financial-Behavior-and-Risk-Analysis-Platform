@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Float
-from db import Base
+from App.db import Base
 
 class QuarterlySummary(Base):
     __tablename__ = "quarterly_summary"

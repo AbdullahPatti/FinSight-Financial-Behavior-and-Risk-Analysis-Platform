@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from Models.quarterly import QuarterlySummary
+from App.Models.quarterly import QuarterlySummary
 import pandas as pd
 import os
 

@@ -4,15 +4,15 @@ import numpy as np
 import joblib
 import re
 from sqlalchemy.orm import Session
-from db import get_db
-from Core.pipelines import run_full_pipeline
-from Crud.transaction import bulk_insert_transactions
-from Schemas.transaction import SingleExpenseInput
-from Crud.quarterly import bulk_insert_quarterly
-from Models.quarterly import QuarterlySummary
-from Models.transactions import Transaction
-from Models.users import User
-from Routers.auth import get_current_user
+from App.db import get_db
+from App.Core.pipelines import run_full_pipeline
+from App.Crud.transaction import bulk_insert_transactions
+from App.Schemas.transaction import SingleExpenseInput
+from App.Crud.quarterly import bulk_insert_quarterly
+from App.Models.quarterly import QuarterlySummary
+from App.Models.transactions import Transaction
+from App.Models.users import User
+from App.Routers.auth import get_current_user
 from openai import OpenAI
 import os
 from dotenv import load_dotenv
