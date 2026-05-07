@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
-from Models.transactions import Transaction
-from Models.quarterly import QuarterlySummary
+from App.Models.transactions import Transaction
+from App.Models.quarterly import QuarterlySummary
 from sqlalchemy import func
 from datetime import datetime
 

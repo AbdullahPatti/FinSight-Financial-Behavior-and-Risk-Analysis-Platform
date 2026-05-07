@@ -4,15 +4,15 @@ import numpy as np
 import joblib
 import re
 from sqlalchemy.orm import Session
-from db import get_db
-from Core.pipelines import run_full_pipeline
-from Crud.transaction import bulk_insert_transactions
-from Schemas.transaction import SingleExpenseInput
-from Crud.quarterly import bulk_insert_quarterly
-from Models.quarterly import QuarterlySummary
-from Models.transactions import Transaction
-from Models.users import User
-from Routers.auth import get_current_user
+from App.db import get_db
+from App.Core.pipelines import run_full_pipeline
+from App.Crud.transaction import bulk_insert_transactions
+from App.Schemas.transaction import SingleExpenseInput
+from App.Crud.quarterly import bulk_insert_quarterly
+from App.Models.quarterly import QuarterlySummary
+from App.Models.transactions import Transaction
+from App.Models.users import User
+from App.Routers.auth import get_current_user
 from openai import OpenAI
 import os
 from dotenv import load_dotenv
@@ -118,8 +118,18 @@ def analyze_single_expense(expense: SingleExpenseInput, db: Session):
         vendor_avg_amount = np.mean([t.amount_pkr for t in vendor_stats]) if vendor_stats else expense.amount_pkr
         is_cash           = 1 if expense.payment_method == 'Cash' else 0
 
-        scaler    = joblib.load('anomaly_scaler.pkl')
-        iso_model = joblib.load('isolation_forest.pkl')
+        all_models  = joblib.load('isolation_forests.pkl')
+        all_scalers = joblib.load('anomaly_scalers.pkl')
+        
+        # Route to the correct state's model
+        hmm_state = quarter_data.hmm_state  # e.g. "Recovery"
+        
+        if hmm_state not in all_models:
+            # Fallback: use the model whose training state is closest
+            hmm_state = list(all_models.keys())[0]
+        
+        scaler    = all_scalers[hmm_state]
+        iso_model = all_models[hmm_state]
 
         input_df = pd.DataFrame(columns=scaler.feature_names_in_)
         input_df.loc[0] = 0.0

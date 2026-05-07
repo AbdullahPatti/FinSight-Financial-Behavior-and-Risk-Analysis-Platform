@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
-from db import get_db
-from Models.users import User
-from Schemas.user import UserCreate, UserLogin, UserResponse, ProfileUpdate
-from Routers.auth_utils import (
+from App.db import get_db
+from App.Models.users import User
+from App.Schemas.user import UserCreate, UserLogin, UserResponse, ProfileUpdate
+from App.Routers.auth_utils import (
     hash_password,
     verify_password,
     create_access_token,

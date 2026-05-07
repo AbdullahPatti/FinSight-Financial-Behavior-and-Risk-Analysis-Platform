@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from Models.transactions import Transaction
+from App.Models.transactions import Transaction
 import pandas as pd
 import os
 
