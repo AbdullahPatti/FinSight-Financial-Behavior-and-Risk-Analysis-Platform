@@ -1,3 +1,8 @@
 # Environment variables
 .env
 *.env
+__pycache__/
+*.pyc
+*.pkl
+*.db
+temp_*.csv
