@@ -86,9 +86,9 @@ def analyze_single_expense(expense: SingleExpenseInput, db: Session):
             return {"error": "No quarterly data found in database. Please upload a CSV first."}
 
         # 2. NLP Prediction
-        tfidf     = joblib.load('../App/tfidf_vectorizer.pkl')
-        nlp_model = joblib.load('../App/nlp_logreg.pkl')
-        le        = joblib.load('../App/label_encoder.pkl')
+        tfidf     = joblib.load('tfidf_vectorizer.pkl')
+        nlp_model = joblib.load('nlp_logreg.pkl')
+        le        = joblib.load('label_encoder.pkl')
 
         desc_clean         = re.sub(r'[^a-z\s]', ' ', expense.transaction_description.lower())
         X_tfidf            = tfidf.transform([desc_clean])
@@ -118,8 +118,8 @@ def analyze_single_expense(expense: SingleExpenseInput, db: Session):
         vendor_avg_amount = np.mean([t.amount_pkr for t in vendor_stats]) if vendor_stats else expense.amount_pkr
         is_cash           = 1 if expense.payment_method == 'Cash' else 0
 
-        all_models  = joblib.load('../App/isolation_forests.pkl')
-        all_scalers = joblib.load('../App/anomaly_scalers.pkl')
+        all_models  = joblib.load('isolation_forests.pkl')
+        all_scalers = joblib.load('anomaly_scalers.pkl')
         
         # Route to the correct state's model
         hmm_state = quarter_data.hmm_state  # e.g. "Recovery"
