@@ -7,7 +7,6 @@ from sqlalchemy.orm import sessionmaker
 from App.db import Base, get_db
 from App.main import app
 
-# Pin the test DB inside the Tests folder so it's deterministic
 TEST_DB_PATH = Path(__file__).parent / "test_finsight.db"
 TEST_DB = f"sqlite:///{TEST_DB_PATH.as_posix()}"
 engine = create_engine(TEST_DB, connect_args={"check_same_thread": False})
@@ -37,3 +36,14 @@ def client(db_session):
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()
+
+@pytest.fixture
+def auth_token(client):
+    user_data = {
+        "full_name": "Shared Test User",
+        "email": "sharedtest@example.com",
+        "password": "testpassword123"
+    }
+    client.post("/auth/register", json=user_data)
+    response = client.post("/auth/login", json={"email": user_data["email"], "password": user_data["password"]})
+    return response.json().get("access_token")
