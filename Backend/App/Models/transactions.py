@@ -4,7 +4,7 @@ from App.db import Base
 class Transaction(Base):
     __tablename__ = "transactions"
     id = Column(Integer, primary_key=True, index=True)
-    transaction_id = Column(String, unique=True, index=True)
+    transaction_id = Column(String, index=True)
     date = Column(Date, index=True)
     fiscal_year = Column(String, index=True)
     quarter = Column(String, index=True)

@@ -43,12 +43,14 @@ async def upload_csv(
         content = await file.read()
         print(f"File size: {len(content)} bytes")
 
-        temp_path = BASE_DIR / "temp_upload.csv"
+        user_data_dir = DATA_DIR / f"user_{current_user.id}"
+        user_data_dir.mkdir(parents=True, exist_ok=True)
+        temp_path = user_data_dir / "temp_upload.csv"
         with open(temp_path, "wb") as f:
             f.write(content)
         print(f"File saved as {temp_path}")
 
-        success = run_full_pipeline(str(temp_path))
+        success = run_full_pipeline(str(temp_path), db=db, current_user=current_user)
 
         if success:
             try:
@@ -76,16 +78,20 @@ async def upload_csv(
         return {"error": f"Upload failed: {str(e)}"}
 
 
-def analyze_single_expense(expense: SingleExpenseInput, db: Session):
+def analyze_single_expense(expense: SingleExpenseInput, db: Session, user_id: int):
     try:
+        user_models_dir = MODELS_DIR / f"user_{user_id}"
         # 1. Fetch Quarterly Data
         quarter_data = db.query(QuarterlySummary).filter(
             QuarterlySummary.fiscal_year == f"FY{expense.fiscal_year}",
-            QuarterlySummary.quarter == f"Q{expense.quarter}"
+            QuarterlySummary.quarter == f"Q{expense.quarter}",
+            QuarterlySummary.user_id == user_id
         ).first()
 
         if not quarter_data:
-            quarter_data = db.query(QuarterlySummary).order_by(
+            quarter_data = db.query(QuarterlySummary).filter(
+                QuarterlySummary.user_id == user_id
+            ).order_by(
                 QuarterlySummary.fiscal_year.desc(),
                 QuarterlySummary.quarter.desc()
             ).first()
@@ -94,9 +100,9 @@ def analyze_single_expense(expense: SingleExpenseInput, db: Session):
             return {"error": "No quarterly data found in database. Please upload a CSV first."}
 
         # 2. NLP Prediction
-        tfidf     = joblib.load(MODELS_DIR / 'tfidf_vectorizer.pkl')
-        nlp_model = joblib.load(MODELS_DIR / 'nlp_logreg.pkl')
-        le        = joblib.load(MODELS_DIR / 'label_encoder.pkl')
+        tfidf     = joblib.load(user_models_dir / 'tfidf_vectorizer.pkl')
+        nlp_model = joblib.load(user_models_dir / 'nlp_logreg.pkl')
+        le        = joblib.load(user_models_dir / 'label_encoder.pkl')
 
         desc_clean         = re.sub(r'[^a-z\s]', ' ', expense.transaction_description.lower())
         X_tfidf            = tfidf.transform([desc_clean])
@@ -126,8 +132,8 @@ def analyze_single_expense(expense: SingleExpenseInput, db: Session):
         vendor_avg_amount = np.mean([t.amount_pkr for t in vendor_stats]) if vendor_stats else expense.amount_pkr
         is_cash           = 1 if expense.payment_method == 'Cash' else 0
 
-        all_models  = joblib.load(MODELS_DIR / 'isolation_forests.pkl')
-        all_scalers = joblib.load(MODELS_DIR / 'anomaly_scalers.pkl')
+        all_models  = joblib.load(user_models_dir / 'isolation_forests.pkl')
+        all_scalers = joblib.load(user_models_dir / 'anomaly_scalers.pkl')
         
         # Route to the correct state's model
         hmm_state = quarter_data.hmm_state  # e.g. "Recovery"
@@ -236,4 +242,4 @@ async def analyze_single(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),   # ← requires valid JWT
 ):
-    return analyze_single_expense(expense, db)
+    return analyze_single_expense(expense, db, current_user.id)

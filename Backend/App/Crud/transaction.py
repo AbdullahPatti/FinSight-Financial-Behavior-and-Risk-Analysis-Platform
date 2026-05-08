@@ -5,8 +5,9 @@ import os
 
 def bulk_insert_transactions(db: Session, user_id: int):
     # Path to Data directory relative to this file's directory (App/Crud/)
-    # Backend/App/Crud/transaction.py -> Backend/Data/temp_hmm.csv
-    data_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "Data", "temp_hmm.csv")
+    # Backend/App/Crud/transaction.py -> Backend/Data/user_{user_id}/temp_hmm.csv
+    data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "Data")
+    data_path = os.path.join(data_dir, f"user_{user_id}", "temp_hmm.csv")
     
     if not os.path.exists(data_path):
         print(f"File not found: {data_path}")
@@ -19,8 +20,11 @@ def bulk_insert_transactions(db: Session, user_id: int):
     for _, row in df.iterrows():
         transaction_id = row['transaction_id']
         
-        # Check if transaction already exists
-        existing = db.query(Transaction).filter(Transaction.transaction_id == transaction_id).first()
+        # Check if transaction already exists for this user
+        existing = db.query(Transaction).filter(
+            Transaction.transaction_id == transaction_id,
+            Transaction.user_id == user_id
+        ).first()
         if existing:
             skipped_count += 1
             continue

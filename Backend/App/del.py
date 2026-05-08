@@ -1,7 +1,18 @@
-# from Core.pipelines import ROOT_DIR
+import sqlite3
 
-from pathlib import Path
+conn = sqlite3.connect("finsight.db")
+cursor = conn.cursor()
 
-ROOT_DIR = Path(__file__).resolve().parent.parent 
+# Delete from transactions table
+cursor.execute("DELETE FROM transactions WHERE user_id = 2")
+transactions_deleted = cursor.rowcount
 
-print(f"Root directory for pipelines: {ROOT_DIR}")
+# Delete from quarterly_summary table
+cursor.execute("DELETE FROM quarterly_summary WHERE user_id = 2")
+summary_deleted = cursor.rowcount
+
+conn.commit()
+conn.close()
+
+print(f"{transactions_deleted} rows deleted from transactions.")
+print(f"{summary_deleted} rows deleted from quarterly_summary.")
