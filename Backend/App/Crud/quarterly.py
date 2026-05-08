@@ -5,8 +5,9 @@ import os
 
 def bulk_insert_quarterly(db: Session, user_id: int):
     # Path to Data directory relative to this file's directory (App/Crud/)
-    # Backend/App/Crud/quarterly.py -> Backend/Data/temp_risk.csv
-    data_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "Data", "temp_risk.csv")
+    # Backend/App/Crud/quarterly.py -> Backend/Data/user_{user_id}/temp_risk.csv
+    data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "Data")
+    data_path = os.path.join(data_dir, f"user_{user_id}", "temp_risk.csv")
     
     if not os.path.exists(data_path):
         print(f"File not found: {data_path}")
@@ -52,5 +53,5 @@ def bulk_insert_quarterly(db: Session, user_id: int):
     print(f"Inserted {new_count} new quarterly summaries, skipped {skipped_count} duplicates")
     return True
 
-def get_quarterly_summary(db: Session):
-    return db.query(QuarterlySummary).all()
+def get_quarterly_summary(db: Session, user_id: int):
+    return db.query(QuarterlySummary).filter(QuarterlySummary.user_id == user_id).all()
