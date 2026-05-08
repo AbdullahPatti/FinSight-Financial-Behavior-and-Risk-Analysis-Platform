@@ -90,6 +90,7 @@ df['review_tier'] = pd.cut(
 )   
 
 df.to_csv(OUTPUT_PATH, index=False)
-joblib.dump(models,  'isolation_forests.pkl')  # dict: {state -> IsoForest}
-joblib.dump(scalers, 'anomaly_scalers.pkl')
-print("Anomaly pipeline finished - NovaTech_HMM.csv updated + isolation_forest.pkl, anomaly_scaler.pkl created")
+MODELS_DIR = os.environ.get('MODELS_DIR', '.')
+joblib.dump(models,  os.path.join(MODELS_DIR, 'isolation_forests.pkl'))  # dict: {state -> IsoForest}
+joblib.dump(scalers, os.path.join(MODELS_DIR, 'anomaly_scalers.pkl'))
+print(f"Anomaly pipeline finished - NovaTech_HMM.csv updated + isolation_forests.pkl, anomaly_scalers.pkl created in {MODELS_DIR}")

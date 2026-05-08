@@ -17,9 +17,16 @@ from openai import OpenAI
 import os
 from dotenv import load_dotenv
 
+from pathlib import Path
+
 load_dotenv()
 
 router = APIRouter()
+
+# Setup paths relative to Backend/App/Routers/
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+MODELS_DIR = BASE_DIR / "Models"
+DATA_DIR = BASE_DIR / "Data"
 
 
 @router.post("/")
@@ -36,11 +43,12 @@ async def upload_csv(
         content = await file.read()
         print(f"File size: {len(content)} bytes")
 
-        with open("temp_upload.csv", "wb") as f:
+        temp_path = BASE_DIR / "temp_upload.csv"
+        with open(temp_path, "wb") as f:
             f.write(content)
-        print("File saved as temp_upload.csv")
+        print(f"File saved as {temp_path}")
 
-        success = run_full_pipeline("temp_upload.csv")
+        success = run_full_pipeline(str(temp_path))
 
         if success:
             try:
@@ -86,9 +94,9 @@ def analyze_single_expense(expense: SingleExpenseInput, db: Session):
             return {"error": "No quarterly data found in database. Please upload a CSV first."}
 
         # 2. NLP Prediction
-        tfidf     = joblib.load('tfidf_vectorizer.pkl')
-        nlp_model = joblib.load('nlp_logreg.pkl')
-        le        = joblib.load('label_encoder.pkl')
+        tfidf     = joblib.load(MODELS_DIR / 'tfidf_vectorizer.pkl')
+        nlp_model = joblib.load(MODELS_DIR / 'nlp_logreg.pkl')
+        le        = joblib.load(MODELS_DIR / 'label_encoder.pkl')
 
         desc_clean         = re.sub(r'[^a-z\s]', ' ', expense.transaction_description.lower())
         X_tfidf            = tfidf.transform([desc_clean])
@@ -118,8 +126,8 @@ def analyze_single_expense(expense: SingleExpenseInput, db: Session):
         vendor_avg_amount = np.mean([t.amount_pkr for t in vendor_stats]) if vendor_stats else expense.amount_pkr
         is_cash           = 1 if expense.payment_method == 'Cash' else 0
 
-        all_models  = joblib.load('isolation_forests.pkl')
-        all_scalers = joblib.load('anomaly_scalers.pkl')
+        all_models  = joblib.load(MODELS_DIR / 'isolation_forests.pkl')
+        all_scalers = joblib.load(MODELS_DIR / 'anomaly_scalers.pkl')
         
         # Route to the correct state's model
         hmm_state = quarter_data.hmm_state  # e.g. "Recovery"
