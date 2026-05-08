@@ -42,7 +42,8 @@ df['confidence'] = np.max(rf.predict_proba(X), axis=1)
 df['low_confidence'] = df['confidence'] < 0.65
 df['correct'] = df['risk_band'] == df['predicted_band']
 
-df.to_csv('risk_bands.csv', index=False)
-joblib.dump(rf, 'risk_random_forest.pkl')
-joblib.dump(le, 'risk_label_encoder.pkl')
-print("Risk band pipeline finished - risk_bands.csv + risk_random_forest.pkl, risk_label_encoder.pkl created")
+MODELS_DIR = os.environ.get('MODELS_DIR', '.')
+df.to_csv(os.environ.get('RISK_OUTPUT', 'risk_bands.csv'), index=False)
+joblib.dump(rf, os.path.join(MODELS_DIR, 'risk_random_forest.pkl'))
+joblib.dump(le, os.path.join(MODELS_DIR, 'risk_label_encoder.pkl'))
+print(f"Risk band pipeline finished - predictions saved to {os.environ.get('RISK_OUTPUT', 'risk_bands.csv')} and models to {MODELS_DIR}")

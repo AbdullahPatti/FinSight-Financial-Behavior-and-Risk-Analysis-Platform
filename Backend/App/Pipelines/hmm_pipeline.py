@@ -8,8 +8,9 @@ import joblib
 DATASET_PATH = os.environ.get('INPUT_CSV', 'NovaTech.csv')
 OUTPUT_PATH = os.environ.get('HMM_OUTPUT', 'NovaTech_HMM.csv')
 QUARTERLY_PATH = os.environ.get('QUARTERLY_OUTPUT', 'quarterly_summary.csv')
-MODEL_PATH = 'hmm_model.pkl'
-SCALER_PATH = 'hmm_scaler.pkl'
+MODELS_DIR = os.environ.get('MODELS_DIR', '.')
+MODEL_PATH = os.path.join(MODELS_DIR, 'hmm_model.pkl')
+SCALER_PATH = os.path.join(MODELS_DIR, 'hmm_scaler.pkl')
 
 FEATURES = ['current_ratio', 'debt_to_asset']
 N_STATES = 4

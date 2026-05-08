@@ -4,9 +4,14 @@ import pandas as pd
 import os
 
 def bulk_insert_transactions(db: Session, user_id: int):
-    if not os.path.exists("temp_hmm.csv"):
+    # Path to Data directory relative to this file's directory (App/Crud/)
+    # Backend/App/Crud/transaction.py -> Backend/Data/temp_hmm.csv
+    data_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "Data", "temp_hmm.csv")
+    
+    if not os.path.exists(data_path):
+        print(f"File not found: {data_path}")
         return False
-    df = pd.read_csv("temp_hmm.csv")
+    df = pd.read_csv(data_path)
     
     new_count = 0
     skipped_count = 0
