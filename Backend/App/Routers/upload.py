@@ -15,6 +15,7 @@ from App.Models.users import User
 from App.Routers.auth import get_current_user
 from openai import OpenAI
 import os
+import json
 from dotenv import load_dotenv
 
 from pathlib import Path
@@ -81,6 +82,7 @@ async def upload_csv(
 def analyze_single_expense(expense: SingleExpenseInput, db: Session, user_id: int):
     try:
         user_models_dir = MODELS_DIR / f"user_{user_id}"
+
         # 1. Fetch Quarterly Data
         quarter_data = db.query(QuarterlySummary).filter(
             QuarterlySummary.fiscal_year == f"FY{expense.fiscal_year}",
@@ -109,11 +111,11 @@ def analyze_single_expense(expense: SingleExpenseInput, db: Session, user_id: in
         predicted_idx      = nlp_model.predict(X_tfidf)
         predicted_category = le.inverse_transform(predicted_idx)[0]
 
-        # 3. Anomaly Detection
+        # 3. Feature Engineering — mirrors FeatureEngineering() in anomaly_detection_pipeline.py
         log_amount = np.log(expense.amount_pkr)
 
         dept_stats = db.query(Transaction.department, Transaction.amount_pkr)\
-            .filter(Transaction.department == expense.department).all()
+            .filter(Transaction.department == expense.department, Transaction.user_id == user_id).all()
 
         if dept_stats:
             amounts            = [t[1] for t in dept_stats]
@@ -124,40 +126,44 @@ def analyze_single_expense(expense: SingleExpenseInput, db: Session, user_id: in
             amount_zscore_dept = 0.0
 
         amount_revenue_ratio = expense.amount_pkr / quarter_data.quarterly_revenue
-        debt_ratio           = quarter_data.debt_to_asset
-        current_ratio        = quarter_data.current_ratio
 
-        vendor_stats      = db.query(Transaction).filter(Transaction.vendor_name == expense.vendor_name).all()
+        # current_ratio: current_assets / current_liabilities (pipeline fix applied)
+        current_ratio = quarter_data.current_ratio
+
+        # debt_ratio = total_liabilities / total_assets, stored as debt_to_asset in DB
+        debt_ratio = quarter_data.debt_to_asset
+
+        vendor_stats      = db.query(Transaction).filter(
+            Transaction.vendor_name == expense.vendor_name,
+            Transaction.user_id == user_id
+        ).all()
         vendor_freq       = len(vendor_stats) + 1
         vendor_avg_amount = np.mean([t.amount_pkr for t in vendor_stats]) if vendor_stats else expense.amount_pkr
         is_cash           = 1 if expense.payment_method == 'Cash' else 0
 
+        # 4. Load per-state model
         all_models  = joblib.load(user_models_dir / 'isolation_forests.pkl')
         all_scalers = joblib.load(user_models_dir / 'anomaly_scalers.pkl')
-        
-        # Route to the correct state's model
-        hmm_state = quarter_data.hmm_state  # e.g. "Recovery"
-        
+
+        hmm_state = quarter_data.hmm_state
         if hmm_state not in all_models:
-            # Fallback: use the model whose training state is closest
             hmm_state = list(all_models.keys())[0]
-        
+
         scaler    = all_scalers[hmm_state]
         iso_model = all_models[hmm_state]
 
-        input_df = pd.DataFrame(columns=scaler.feature_names_in_)
-        input_df.loc[0] = 0.0
-        input_df = input_df.astype(float)
+        # 5. Build input DataFrame from scaler's expected columns only
+        input_df = pd.DataFrame([np.zeros(len(scaler.feature_names_in_))],
+                                columns=scaler.feature_names_in_)
 
-        input_df.at[0, 'log amount']                  = log_amount
-        input_df.at[0, 'amount_zscore_dept']          = amount_zscore_dept
-        input_df.at[0, 'amount / quarterly_revenue']  = amount_revenue_ratio
-        input_df.at[0, 'debt_ratio']                  = debt_ratio
-        input_df.at[0, 'current_ratio']               = current_ratio
-        input_df.at[0, 'vendor_freq']                 = vendor_freq
-        input_df.at[0, 'vendor_avg_amount']           = vendor_avg_amount
-        input_df.at[0, 'is_cash']                     = is_cash
-        input_df.at[0, 'quarterly_revenue_pkr']       = quarter_data.quarterly_revenue
+        input_df.at[0, 'log amount']                 = log_amount
+        input_df.at[0, 'amount_zscore_dept']         = amount_zscore_dept
+        input_df.at[0, 'amount / quarterly_revenue'] = amount_revenue_ratio
+        input_df.at[0, 'debt_ratio']                 = debt_ratio
+        input_df.at[0, 'current_ratio']              = current_ratio
+        input_df.at[0, 'vendor_freq']                = vendor_freq
+        input_df.at[0, 'vendor_avg_amount']          = vendor_avg_amount
+        input_df.at[0, 'is_cash']                    = is_cash
 
         for col, val in {
             f'expense_category_{predicted_category}': 1,
@@ -170,39 +176,82 @@ def analyze_single_expense(expense: SingleExpenseInput, db: Session, user_id: in
         X_scaled      = scaler.transform(input_df)
         anomaly_score = iso_model.score_samples(X_scaled)[0]
         is_anomaly    = bool(iso_model.predict(X_scaled)[0] == -1)
+        with open(user_models_dir / 'anomaly_thresholds.json') as f:
+            thresholds = json.load(f)
+
+        TIER_HIGH   = thresholds["tier_high"]
+        TIER_MEDIUM = thresholds["tier_medium"]
+
+        if anomaly_score <= TIER_HIGH:
+            review_tier = "High — review now"
+        elif anomaly_score <= TIER_MEDIUM:
+            review_tier = "Medium — weekly batch"
+        else:
+            review_tier = "Normal"
 
         if is_anomaly:
-            prompt = f"""You are a financial fraud detection assistant for a corporate expense monitoring system.
-
-            Your task: Given a flagged transaction, return exactly TWO sentences:
-            1. The primary reason this transaction was flagged as anomalous (cite specific metric names and values).
-            2. Whether this flag appears legitimate or likely a false positive, and why.
-            
-            No preamble, no labels, no bullet points — just the two sentences.
-            
-            Transaction:
-            - Department: {expense.department}
-            - Category: {predicted_category}
-            - Vendor: {expense.vendor_name} (seen {vendor_freq}x, avg PKR {vendor_avg_amount:.0f})
-            - Description: {expense.transaction_description}
-            - Amount: PKR {expense.amount_pkr:,.0f}
-            - Payment Method: {expense.payment_method}
-            
-            Anomaly Signals:
-            - Is Anomaly (Isolation Forest): {is_anomaly}
-            - Anomaly Score: {anomaly_score:.4f}
-            - Dept Z-Score: {amount_zscore_dept:.2f}
-            - Amount/Revenue Ratio: {amount_revenue_ratio:.6f}
-            - Vendor Frequency: {vendor_freq}
-            - Vendor Avg Amount: PKR {vendor_avg_amount:.0f}
-            - HMM Financial State: {quarter_data.hmm_state}
-            - Risk Band: {quarter_data.risk_band}
-            
-            Rules:
-            1. Sentence 1 — cite the top 1-2 metrics that most strongly support the anomaly flag (include their values).
-            2. Sentence 2 — if the anomaly score is borderline (close to 0), z-score is low, and vendor is familiar, lean toward false positive. Otherwise, confirm the flag as likely legitimate.
-            3. Plain business language. No jargon. Hard limit: 50 words total across both sentences.
-            4. Output only the two sentences."""
+            prompt = f"""You are a financial auditor reviewing a flagged corporate expense. Analyze every metric below and return exactly TWO sentences.
+                
+                ========================
+                TRANSACTION
+                ========================
+                Department: {expense.department}
+                Category (AI-predicted): {predicted_category}
+                Vendor: {expense.vendor_name} | Seen {vendor_freq} time(s) | Historical avg PKR {vendor_avg_amount:,.0f}
+                Description: {expense.transaction_description}
+                Amount: PKR {expense.amount_pkr:,.0f}
+                Payment: {expense.payment_method}
+                
+                ========================
+                ANOMALY METRICS
+                ========================
+                1. Isolation Forest Score: {anomaly_score:.4f}
+                   - Range: typically -0.5 (very anomalous) to +0.5 (very normal)
+                   - < -0.35 → High anomaly (matches "High — review now" tier)
+                   - -0.35 to -0.20 → Moderate anomaly (matches "Medium — weekly batch" tier)
+                   - > -0.20 → Weak or no anomaly (matches "Normal" tier)
+                   - Note: model was trained per HMM state, so score is relative to {quarter_data.hmm_state} regime peers only
+                
+                2. Review Tier: {review_tier}
+                   - "High — review now" → score below 2nd percentile of training data, strong outlier
+                   - "Medium — weekly batch" → score between 2nd and 5th percentile, moderate outlier
+                   - "Normal" → score above 5th percentile, not a statistical outlier
+                
+                3. Department Z-Score: {amount_zscore_dept:.2f}
+                   - |z| < 1.5 → normal for this department
+                   - 1.5–3.0 → moderately unusual
+                   - > 3.0 → highly abnormal vs department peers
+                
+                4. Amount-to-Revenue Ratio: {amount_revenue_ratio:.6f}
+                   - Fraction of quarterly revenue this single transaction represents
+                   - > 0.01 (1%) → noteworthy for a single expense
+                   - > 0.05 (5%) → strongly suspicious scale
+                
+                5. Vendor Familiarity:
+                   - Frequency: {vendor_freq} transaction(s) on record
+                   - Historical avg: PKR {vendor_avg_amount:,.0f}
+                   - Deviation from avg: {((expense.amount_pkr - vendor_avg_amount) / max(vendor_avg_amount, 1) * 100):.1f}%
+                   - 1–2 occurrences → unfamiliar vendor, higher suspicion
+                   - 10+ occurrences → familiar vendor, supports legitimacy
+                   - Deviation > 50% from avg → suspicious even for familiar vendors
+                
+                6. Financial Regime:
+                   - HMM State: {quarter_data.hmm_state}
+                   - Risk Band: {quarter_data.risk_band}
+                   - "Financially Stable" + "Low" risk → anomaly less credible, likely false positive
+                   - "Under Pressure" or "Distressed" + "High" risk → anomaly more credible, warrants review
+                
+                ========================
+                REASONING RULES
+                ========================
+                - Sentence 1: Evaluate the 2–3 most informative metrics. State whether each is normal, suspicious, or conflicting. Be specific with values.
+                - Sentence 2: Give a final verdict — legitimate flag or likely false positive — based on combined metric weight. Name the decisive factors.
+                - If review_tier is "Normal" but is_anomaly is True, note this as a borderline case.
+                - If vendor is familiar (10+) AND z-score < 1.5 AND review_tier is "Normal" → strongly lean false positive.
+                - If review_tier is "High — review now" AND z-score > 2 AND vendor_freq < 3 → confirm as legitimate flag.
+                - Conflicting signals (e.g. high z-score but familiar vendor) → acknowledge mixed signals explicitly.
+                - No preamble. No labels. No bullet points. No markdown. Exactly TWO sentences. Hard limit: 60 words total.
+                """
 
             client = OpenAI(
                 base_url="https://openrouter.ai/api/v1",
@@ -224,6 +273,7 @@ def analyze_single_expense(expense: SingleExpenseInput, db: Session, user_id: in
             "predicted_category": predicted_category,
             "is_anomaly":         is_anomaly,
             "anomaly_score":      float(anomaly_score),
+            "review_tier":        review_tier,
             "hmm_state":          quarter_data.hmm_state,
             "risk_band":          quarter_data.risk_band,
             "response":           result,

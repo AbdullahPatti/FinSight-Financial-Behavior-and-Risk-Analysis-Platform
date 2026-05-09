@@ -12,7 +12,7 @@ MODELS_DIR = os.environ.get('MODELS_DIR', '.')
 MODEL_PATH = os.path.join(MODELS_DIR, 'hmm_model.pkl')
 SCALER_PATH = os.path.join(MODELS_DIR, 'hmm_scaler.pkl')
 
-FEATURES = ['current_ratio', 'debt_to_asset']
+FEATURES = ['current_ratio', 'debt_to_asset','loan_coverage', 'expense_to_revenue']
 N_STATES = 4
 N_ITER = 1000
 RANDOM_STATE = 42
@@ -64,17 +64,26 @@ def train_hmm(X_scaled):
 
 def decode_states(hmm, X_scaled, X_raw):
     hidden_state_ids = hmm.predict(X_scaled)
-    state_cr_means = []
+
+    # FEATURES order: current_ratio[0], debt_to_asset[1], loan_coverage[2], expense_to_revenue[3]
+    state_scores = []
     for s in range(N_STATES):
         mask = hidden_state_ids == s
         if mask.sum() > 0:
-            cr_mean = X_raw[mask, 0].mean()
-            da_mean = X_raw[mask, 1].mean()
-            state_cr_means.append((s, cr_mean, da_mean, int(mask.sum())))
-    state_cr_means.sort(key=lambda x: x[1], reverse=True)
+            cr_mean  = X_raw[mask, 0].mean()  # higher = better
+            da_mean  = X_raw[mask, 1].mean()  # lower  = better
+            lc_mean  = X_raw[mask, 2].mean()  # higher = better
+            er_mean  = X_raw[mask, 3].mean()  # lower  = better
+
+            # Composite health score
+            health_score = cr_mean + lc_mean - da_mean - er_mean
+            state_scores.append((s, health_score))
+
+    state_scores.sort(key=lambda x: x[1], reverse=True)
     state_id_to_label = {}
-    for rank, (sid, _, _, _) in enumerate(state_cr_means):
+    for rank, (sid, _) in enumerate(state_scores):
         state_id_to_label[sid] = STATE_LABELS[rank]
+
     return hidden_state_ids, state_id_to_label
 
 def assign_and_validate(quarterly, hidden_state_ids, state_id_to_label):

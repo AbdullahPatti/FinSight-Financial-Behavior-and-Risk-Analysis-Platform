@@ -4,11 +4,11 @@ conn = sqlite3.connect("finsight.db")
 cursor = conn.cursor()
 
 # Delete from transactions table
-cursor.execute("DELETE FROM transactions WHERE user_id = 2")
+cursor.execute("DELETE FROM transactions WHERE user_id = 1")
 transactions_deleted = cursor.rowcount
 
 # Delete from quarterly_summary table
-cursor.execute("DELETE FROM quarterly_summary WHERE user_id = 2")
+cursor.execute("DELETE FROM quarterly_summary WHERE user_id = 1")
 summary_deleted = cursor.rowcount
 
 conn.commit()

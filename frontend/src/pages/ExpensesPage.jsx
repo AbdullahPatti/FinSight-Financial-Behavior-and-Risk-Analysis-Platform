@@ -16,9 +16,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import "../styles/expenses.css";
-// ─── CHANGE 1: import shared auth fetch helper (replaces BASE_URL) ─────────
 import { apiFetch } from "../utils/api";
-// ──────────────────────────────────────────────────────────────────────────
 
 const uploadedFiles = [
   { id: 1, name: "expenses_january.csv",  status: "processed",  date: "Feb 15, 2026", rows: 234 },
@@ -77,16 +75,16 @@ export default function ExpensesPage() {
   const [txnError, setTxnError]         = useState(null);
 
   // Filters
-  const [anomalyFilter, setAnomalyFilter] = useState("all"); // "all" | "yes" | "no"
+  const [anomalyFilter, setAnomalyFilter] = useState("all");
   const [statusFilter, setStatusFilter]   = useState("all");
   const [search, setSearch]               = useState("");
 
-  // Add Expense Model State
+  // Add Expense Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [formData, setFormData] = useState({
     department: "",
-    expense_category: "",
+    expense_category: "",        // collected from form now
     vendor_name: "",
     transaction_description: "",
     amount_pkr: "",
@@ -101,9 +99,7 @@ export default function ExpensesPage() {
   const [overview, setOverview] = useState(null);
 
   useEffect(() => {
-    // ─── CHANGE 2: apiFetch injects token automatically ────────────────────
     apiFetch("/dashboard/")
-    // ───────────────────────────────────────────────────────────────────────
       .then(async (r) => {
         const text = await r.text();
         return JSON.parse(text);
@@ -111,9 +107,7 @@ export default function ExpensesPage() {
       .then((d) => setOverview(d.overview))
       .catch(() => {});
 
-    // ─── CHANGE 3 ──────────────────────────────────────────────────────────
     apiFetch("/transactions/?limit=50")
-    // ───────────────────────────────────────────────────────────────────────
       .then(async (r) => {
         const text = await r.text();
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -121,7 +115,6 @@ export default function ExpensesPage() {
         catch { throw new Error("Non-JSON response: " + text.slice(0, 200)); }
       })
       .then((d) => {
-        // Strip SQLAlchemy internal keys
         const clean = (d.transactions || []).map((t) => {
           const { _sa_instance_state, ...rest } = t;
           return rest;
@@ -149,20 +142,16 @@ export default function ExpensesPage() {
     }, ...prev]);
 
     try {
-      // ─── CHANGE 4: apiFetch for CSV upload — token in header ─────────────
       const uploadPayload = new FormData();
       uploadPayload.append("file", file);
       const res  = await apiFetch("/upload/", { method: "POST", body: uploadPayload });
-      // ───────────────────────────────────────────────────────────────────────
       const data = await res.json().catch(() => ({}));
       const ok   = res.ok && data?.status === "success";
       setFiles((prev) =>
         prev.map((item) => item.id === fileId ? { ...item, status: ok ? "processed" : "failed" } : item)
       );
       if (ok) {
-        // ─── CHANGE 5: token-authenticated refresh ──────────────────────────
         apiFetch("/transactions/?limit=50")
-        // ────────────────────────────────────────────────────────────────────
           .then((r) => r.json())
           .then((d) => {
             const clean = (d.transactions || []).map(({ _sa_instance_state, ...rest }) => rest);
@@ -207,8 +196,6 @@ export default function ExpensesPage() {
     return true;
   });
 
-  // ─── CHANGE 6: export uses apiFetch so token is sent in header ─────────
-  // Can't use window.location.href for authenticated downloads — use blob instead
   const exportCSV = async () => {
     try {
       const res = await apiFetch("/transactions/export-anomalies");
@@ -223,10 +210,16 @@ export default function ExpensesPage() {
       console.error("Export failed", e);
     }
   };
-  // ────────────────────────────────────────────────────────────────────────
 
   const handleAddExpense = async (e) => {
     e.preventDefault();
+
+    // CHANGE 3: block vague descriptions before hitting the API
+    if (formData.transaction_description.trim().split(/\s+/).filter(Boolean).length < 3) {
+      alert("Please enter a more descriptive transaction description (at least 3 words).");
+      return;
+    }
+
     setIsAnalyzing(true);
     setAnalysisResult(null);
 
@@ -238,17 +231,14 @@ export default function ExpensesPage() {
         quarter: parseInt(formData.quarter)
       };
 
-      // ─── CHANGE 7: single expense analysis — token in header ───────────
       const res = await apiFetch("/upload/single", {
         method: "POST",
         body: JSON.stringify(payload),
       });
-      // ────────────────────────────────────────────────────────────────────
 
       const result = await res.json();
       if (res.ok && !result.error) {
         setAnalysisResult(result);
-        // Add pseudo-transaction to the list for immediate feedback
         const newTxn = {
           transaction_id: `TMP-${Date.now()}`,
           date: new Date().toISOString().split('T')[0],
@@ -256,7 +246,7 @@ export default function ExpensesPage() {
           expense_category: result.predicted_category || payload.expense_category,
           is_anomaly: result.is_anomaly,
           hmm_state: result.hmm_state,
-          review_tier: result.is_anomaly ? "High — review now" : "Normal"
+          review_tier: result.review_tier || "Normal" 
         };
         setTransactions(prev => [newTxn, ...prev]);
       } else {
@@ -312,7 +302,7 @@ export default function ExpensesPage() {
               Manage, upload, and analyze your business transactions
             </p>
           </div>
-          <button 
+          <button
             onClick={() => setIsModalOpen(true)}
             className="add-expense-btn px-5 py-3 rounded-xl flex items-center gap-2 text-sm font-medium shadow-lg"
           >
@@ -385,18 +375,18 @@ export default function ExpensesPage() {
       <AnimatePresence>
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden"
+              className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto"
             >
               <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-gradient-to-r from-teal-50 to-white">
                 <div>
                   <h2 className="text-2xl font-semibold text-slate-900">Add New Expense</h2>
                   <p className="text-slate-500 text-sm">Enter transaction details for AI analysis</p>
                 </div>
-                <button 
+                <button
                   onClick={() => { setIsModalOpen(false); setAnalysisResult(null); }}
                   className="p-2 hover:bg-slate-100 rounded-full transition-colors"
                 >
@@ -406,6 +396,8 @@ export default function ExpensesPage() {
 
               <form onSubmit={handleAddExpense} className="p-8 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                  {/* Department */}
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-slate-700">Department</label>
                     <input
@@ -417,6 +409,8 @@ export default function ExpensesPage() {
                       className="w-full h-11 px-4 rounded-xl border-2 border-slate-100 focus:border-teal-300 outline-none transition-all"
                     />
                   </div>
+
+                  {/* Vendor Name */}
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-slate-700">Vendor Name</label>
                     <input
@@ -428,28 +422,20 @@ export default function ExpensesPage() {
                       className="w-full h-11 px-4 rounded-xl border-2 border-slate-100 focus:border-teal-300 outline-none transition-all"
                     />
                   </div>
-                  <div className="space-y-2 md:col-span-2">
-                    <label className="text-sm font-medium text-slate-700">Transaction Description</label>
-                    <input
-                      required
-                      type="text"
-                      value={formData.transaction_description}
-                      onChange={(e) => setFormData({...formData, transaction_description: e.target.value})}
-                      placeholder="What was this for?"
-                      className="w-full h-11 px-4 rounded-xl border-2 border-slate-100 focus:border-teal-300 outline-none transition-all"
-                    />
-                  </div>
+
+                  {/* CHANGE 1: Expense Category — was missing from the form entirely */}
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-700">Amount (PKR)</label>
+                    <label className="text-sm font-medium text-slate-700">Expense Category</label>
                     <input
-                      required
-                      type="number"
-                      value={formData.amount_pkr}
-                      onChange={(e) => setFormData({...formData, amount_pkr: e.target.value})}
-                      placeholder="0.00"
+                      type="text"
+                      value={formData.expense_category}
+                      onChange={(e) => setFormData({...formData, expense_category: e.target.value})}
+                      placeholder="e.g. Utilities"
                       className="w-full h-11 px-4 rounded-xl border-2 border-slate-100 focus:border-teal-300 outline-none transition-all"
                     />
                   </div>
+
+                  {/* CHANGE 2: Payment Method — added Bank Transfer option */}
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-slate-700">Payment Method</label>
                     <select
@@ -461,12 +447,48 @@ export default function ExpensesPage() {
                       <option value="Cheque">Cheque</option>
                       <option value="Online Portal">Online Portal</option>
                       <option value="Corporate Card">Corporate Card</option>
+                      <option value="Bank Transfer">Bank Transfer</option>
                     </select>
                   </div>
+
+                  {/* Transaction Description — full width, with word count hint */}
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="text-sm font-medium text-slate-700">Transaction Description</label>
+                    <input
+                      required
+                      type="text"
+                      value={formData.transaction_description}
+                      onChange={(e) => setFormData({...formData, transaction_description: e.target.value})}
+                      placeholder="e.g. Monthly cloud hosting invoice for Q2"
+                      className="w-full h-11 px-4 rounded-xl border-2 border-slate-100 focus:border-teal-300 outline-none transition-all"
+                    />
+                    {/* CHANGE 3: inline hint if description is too vague */}
+                    {formData.transaction_description.length > 0 &&
+                      formData.transaction_description.trim().split(/\s+/).filter(Boolean).length < 3 && (
+                      <p className="text-xs text-amber-600 mt-1">
+                        Please be more descriptive for accurate AI categorization (at least 3 words).
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Amount */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700">Amount (PKR)</label>
+                    <input
+                      required
+                      type="number"
+                      value={formData.amount_pkr}
+                      onChange={(e) => setFormData({...formData, amount_pkr: e.target.value})}
+                      placeholder="0.00"
+                      className="w-full h-11 px-4 rounded-xl border-2 border-slate-100 focus:border-teal-300 outline-none transition-all"
+                    />
+                  </div>
+
                 </div>
 
+                {/* Analysis Result */}
                 {analysisResult && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     className={`p-5 rounded-2xl border-2 ${analysisResult.is_anomaly ? 'bg-red-50 border-red-100' : 'bg-teal-50 border-teal-100'} space-y-3`}
@@ -487,11 +509,24 @@ export default function ExpensesPage() {
                       </span>
                     </div>
                     <p className="text-sm text-slate-600">
-                      Score: <span className="font-mono font-bold">{analysisResult.anomaly_score.toFixed(4)}</span> | 
-                      State: <span className="font-semibold">{analysisResult.hmm_state}</span> | 
+                      Score: <span className="font-mono font-bold">{analysisResult.anomaly_score.toFixed(4)}</span> |
+                      State: <span className="font-semibold">{analysisResult.hmm_state}</span> |
                       Risk: <span className={`font-bold ${analysisResult.risk_band === 'High' ? 'text-red-600' : 'text-teal-600'}`}>{analysisResult.risk_band}</span>
                     </p>
-
+                    {analysisResult.review_tier && (
+                        <p className="text-sm">
+                          Review Tier:{" "}
+                          <span className={`font-semibold ${
+                            analysisResult.review_tier === "High — review now"
+                              ? "text-red-600"
+                              : analysisResult.review_tier === "Medium — weekly batch"
+                              ? "text-amber-600"
+                              : "text-teal-600"
+                          }`}>
+                            {analysisResult.review_tier}
+                          </span>
+                        </p>
+                      )}
                     {analysisResult.response && analysisResult.response !== "Transaction is not an anomaly." && (
                       <div className={`mt-1 p-4 rounded-xl border ${analysisResult.is_anomaly ? 'bg-white/60 border-red-200' : 'bg-white/60 border-teal-200'}`}>
                         <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">

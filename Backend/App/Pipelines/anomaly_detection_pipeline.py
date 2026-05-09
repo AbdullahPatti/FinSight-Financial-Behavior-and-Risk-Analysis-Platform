@@ -4,6 +4,7 @@ import numpy as np
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import RobustScaler
 import joblib
+import json
 
 DATASET_PATH = os.environ.get('ANOMALY_INPUT', 'NovaTech_HMM.csv')
 OUTPUT_PATH = os.environ.get('ANOMALY_OUTPUT', 'NovaTech_HMM.csv')
@@ -22,7 +23,8 @@ def FeatureEngineering(df):
         (df_new['amount_pkr'] - df_new['mean']) / df_new['std'].replace(0, 1)
     )
     df_new['amount / quarterly_revenue'] = df['amount_pkr'] / df['quarterly_revenue_pkr']
-    df_new['current_ratio'] = df['current_liabilities_pkr'] / df['current_assets_pkr']
+    # CORRECT
+    df_new['current_ratio'] = df['current_assets_pkr'] / df['current_liabilities_pkr']
     df_new['debt_ratio'] = df['total_liabilities_pkr'] / df['total_assets_pkr']
     vendor_freq = df_new['vendor_name'].value_counts()
     df_new['vendor_freq'] = df_new['vendor_name'].map(vendor_freq)
@@ -91,6 +93,12 @@ df['review_tier'] = pd.cut(
 
 df.to_csv(OUTPUT_PATH, index=False)
 MODELS_DIR = os.environ.get('MODELS_DIR', '.')
+thresholds = {
+    "tier_high":   float(np.percentile(scores, 2)),
+    "tier_medium": float(np.percentile(scores, 5)),
+}
+with open(os.path.join(MODELS_DIR, 'anomaly_thresholds.json'), 'w') as f:
+    json.dump(thresholds, f)
 joblib.dump(models,  os.path.join(MODELS_DIR, 'isolation_forests.pkl'))  # dict: {state -> IsoForest}
 joblib.dump(scalers, os.path.join(MODELS_DIR, 'anomaly_scalers.pkl'))
 print(f"Anomaly pipeline finished - NovaTech_HMM.csv updated + isolation_forests.pkl, anomaly_scalers.pkl created in {MODELS_DIR}")
