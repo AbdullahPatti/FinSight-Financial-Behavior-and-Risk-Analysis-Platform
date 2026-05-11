@@ -19,3 +19,4 @@ passlib
 bcrypt==4.0.1
 python-jwt
 python-jose
+pytest

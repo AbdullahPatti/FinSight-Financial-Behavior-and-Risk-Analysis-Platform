@@ -62,7 +62,7 @@ for state in HMM_STATES:
     # Fit Isolation Forest
     iso = IsolationForest(
         n_estimators=200,
-        contamination=0.05,   # expect ~5% anomalies
+        contamination='auto',   # expect ~5% anomalies
         max_samples='auto',
         random_state=42,
         n_jobs=-1

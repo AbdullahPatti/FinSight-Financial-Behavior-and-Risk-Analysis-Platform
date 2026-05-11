@@ -253,6 +253,7 @@ def analyze_single_expense(expense: SingleExpenseInput, db: Session, user_id: in
                 - No preamble. No labels. No bullet points. No markdown. Exactly TWO sentences. Hard limit: 60 words total.
                 """
 
+
             client = OpenAI(
                 base_url="https://openrouter.ai/api/v1",
                 api_key=os.getenv("API_KEY"),
